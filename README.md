@@ -8,4 +8,5 @@ Weekly lists of recently funded AI and fintech startups — US + Europe only, pr
 
 | Week ending | Companies | File |
 |-------------|-----------|------|
+| 2026-10-30 | 6 | [weeks/2026-10-30.md](weeks/2026-10-30.md) |
 | 2026-10-26 | 9 | [weeks/2026-10-26.md](weeks/2026-10-26.md) |
