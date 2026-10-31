@@ -14,7 +14,7 @@ export async function researchCandidate(article,source,{signal,fetchPage,clock=(
   located={...classified,...located,round_type:classified.round_type,sector:classified.sector,amount_text:classified.amount_text};
   if(located.location_kind==='unknown'&&classified.country_code==='US')located={...located,location_kind:'us',country_code:'US',hq_location:classified.hq_location,hq_evidence:classified.hq_evidence};
   if(located.location_kind==='foreign')return{...located,eligibility:'excluded',research_error:'来源明确为非美国'};
-  if(located.country_code!=='US')return{...located,eligibility:'research',research_error:'国家属性提取失败；并非要求有具体总部地址'};
+  if(located.country_code!=='US')return{...located,eligibility:'research',research_error:['来源未提供可识别的美国公司依据',located.research_error].filter(Boolean).join('；')};
   if(!located.round_type)return{...located,eligibility:'research',research_error:'融资阶段未能提取，未加入目标阶段名单'};
   const company=await researchCompany(located,{signal,clock,fetchPage});
   return{...located,eligibility:company.complete?'included':'research',company_profile:company.profile,research_error:company.error||located.research_error};
@@ -26,14 +26,14 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
   let stopped = false;
   let controller;
   let progress={completed:0,total:0};
-  if(db.prepare('SELECT COUNT(*) n FROM funding_articles WHERE classification_version<4').get().n)db.prepare('UPDATE funding_schedule SET last_success_at=NULL,last_attempt_at=NULL WHERE id=1').run();
+  if(db.prepare('SELECT COUNT(*) n FROM funding_articles WHERE classification_version<5').get().n)db.prepare('UPDATE funding_schedule SET last_success_at=NULL,last_attempt_at=NULL WHERE id=1').run();
   // Repair already-stored false positives without deleting user-confirmed records.
-  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<4 AND review_status!='approved'").all()){
+  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<5 AND review_status!='approved'").all()){
     const source=sources.find(s=>s.name===row.source_name)||{sectorHint:row.source_name==='FinTech Global'?'Fintech':undefined};
     const valid=classifyArticle(row,source);
-    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=4 WHERE id=?').run(valid?'research':'excluded',row.id);
+    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=5 WHERE id=?').run(valid?'research':'excluded',row.id);
   }
-  db.prepare("UPDATE funding_articles SET classification_version=4 WHERE review_status='approved' AND classification_version<4").run();
+  db.prepare("UPDATE funding_articles SET classification_version=5 WHERE review_status='approved' AND classification_version<5").run();
 
   function snapshot(reportId) {
     const schedule = db.prepare('SELECT * FROM funding_schedule WHERE id=1').get();
@@ -92,7 +92,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
         insert.run(article.source_url, article.source_name, article.title, article.summary, article.published_at, article.company_name, article.company_key, article.sector, article.country_code, article.round_type, article.amount_text, article.extraction_notes);
         const { id } = db.prepare('SELECT id FROM funding_articles WHERE source_url=?').get(article.source_url);
         const prior=db.prepare('SELECT review_status FROM funding_articles WHERE id=?').get(id);
-        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=4 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
+        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=5 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
         db.prepare('INSERT OR IGNORE INTO report_articles(report_id,article_id) VALUES(?,?)').run(report.id, id);
       }
       if (status !== 'failed') db.prepare('UPDATE funding_schedule SET last_success_at=? WHERE id=1').run(now.toISOString());
@@ -186,7 +186,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
   function diagnosticsExport(reportId){
     const state=snapshot(reportId);
     const items=state.report?db.prepare(`SELECT a.source_name,a.source_url,a.title,a.summary,a.published_at,a.company_name,a.country_code,a.round_type,a.hq_location,a.hq_evidence_json,a.research_error,a.eligibility,a.researched_at FROM funding_articles a JOIN report_articles r ON r.article_id=a.id WHERE r.report_id=?`).all(state.report.id):[];
-    return{version:'0.3.4',report:state.report,diagnostics:state.diagnostics,items};
+    return{version:'0.3.5',report:state.report,diagnostics:state.diagnostics,items};
   }
   function tick() {
     if (running || stopped) return;

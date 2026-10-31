@@ -110,3 +110,9 @@ Core gates are US location evidence, AI/Fintech industry, Pre-seed–Series B an
 ## v0.3.4 eligibility contract
 
 Exactly four conditions apply: recent funding news within seven days, a US company, AI or Fintech, and Pre-seed/Seed/Series A/Series B. Country membership is independent of a detailed headquarters address. Explicit US/American company descriptions or matched company country metadata can establish country without a city. Headquarters, socials, founder/contact data and jobs are nullable enrichment fields. The hiring dropdown has been removed. Missing country extraction is diagnosed as a retrieval failure, never proof the company is not American. A public-article-only diagnostic export supports debugging without manual company verification.
+
+## v0.3.5 reported-input regression
+
+The uploaded October 31 retrieval diagnostics exposed a missed Avante Series A: the headline described rising insurance costs while the lead explicitly reported Seattle, AI and a $30m Series A. Funding detection now accepts the lead as well as the headline. VC fund closes remain excluded, and the current round is read before historical round mentions. Country diagnostics retain underlying fetch failures. Classification version 5 triggers a fresh retrieval after update. Regression coverage replays public article text from that diagnostic through SQLite and the visible results API, with optional pages blocked.
+
+This fixes the demonstrated missed result. It does not resolve FinSMEs HTTP 403 or establish comprehensive market coverage.
