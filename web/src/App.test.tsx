@@ -17,17 +17,17 @@ beforeEach(() => {
 });
 
 describe('workspace navigation', () => {
-  it('navigates all eight sections and marks the current destination', async () => {
+  it('navigates the seven sections and marks the current destination', async () => {
     renderApp();
     const user = userEvent.setup();
     const navigation = screen.getByRole('navigation', { name: 'Main navigation' });
     const links = within(navigation).getAllByRole('link');
-    expect(links).toHaveLength(8);
+    expect(links).toHaveLength(7);
     for (const link of links.slice(1)) {
       await user.click(link);
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(link.textContent!);
-      if (!['Funding Feed', 'Companies'].includes(link.textContent!)) expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
+      if (link.textContent!=='公司发现') expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
     }
     await user.click(within(navigation).getByRole('link', { name: 'Dashboard' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A little focus.');
@@ -35,7 +35,7 @@ describe('workspace navigation', () => {
 
   it('supports direct section routes and recovers unknown routes', () => {
     const view = renderApp('/companies');
-    expect(screen.getByRole('heading', { level: 1, name: 'Companies' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: '公司发现' })).toBeVisible();
     view.unmount();
     renderApp('/missing');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A little focus.');

@@ -4,7 +4,7 @@ Weekly lists of recently funded AI and fintech startups — US + Europe only, pr
 
 ## Local website
 
-The [Signal website](web/README.md) is a local-first React + TypeScript workspace with a Node.js + SQLite backend. It includes a US-only AI/Fintech funding feed (Pre-seed–Series B), weekly RSS collection with source review, and company profiles with PM/GTM/Data hiring evidence. See the [D-drive quick start](web/START_HERE.zh-CN.md) for Windows setup.
+The [Signal website](web/README.md) is a local-first React + TypeScript workspace with a Node.js + SQLite backend. It includes a single company-discovery page with background funding/location/official-page research, US-only AI/Fintech screening (Pre-seed–Series B), and PM/GTM/Data job evidence. See the [D-drive quick start](web/START_HERE.zh-CN.md) for Windows setup.
 
 **首次接入自动更新：** [下载安装器](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Install-Signal.zip)，解压后双击 `Install-Signal.cmd`，会自动接入 `D:\Signal`，保留现有数据。之后启动自动更新，也可在网站内点击“更新并重启”。
 

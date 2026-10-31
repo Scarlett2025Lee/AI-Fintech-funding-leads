@@ -1,4 +1,5 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { locationFromText } from './location-research.mjs';
 
 export const SOURCES = [
   { id: 'finsmes', name: 'FinSMEs', url: 'https://www.finsmes.com/feed', pages: 6, hosts: ['finsmes.com', 'www.finsmes.com'] },
@@ -83,26 +84,23 @@ export function reportingWindow(now = new Date()) {
 export function classifyArticle(article, source) {
   const title = article.title;
   const text = title + '. ' + article.summary;
-  if (!/\b(rais(?:e[sd]?|ing)|secur(?:e[sd]?|ing)|clos(?:e[sd]?|ing)|lands?|bags?|funding|financing)\b/i.test(title)) return null;
+  if (!/\b(?:raises?|raised|secures?|secured|closes?|closed|lands?|receives?|completes?|announces?)\s+(?:(?:a|an|its|new|over|approximately|more than|another|additional|about|of)\s+){0,4}(?:(?:US\$|USD|EUR|GBP|\$|€|£)\s*[\d.]|[\d.]+\s*(?:million|billion)|pre[- ]?seed|seed|series\s+[a-z]|(?:strategic\s+)?(?:funding|financing|investment|venture)\b)/i.test(title)) return null;
   if (/\b(series\s+[c-z]|ipo|acqui(?:res?|red|sition)|debt[- ]only|debt financ(?:ing|e)|debt funding|credit facility|fund\s+[IVX]+|venture fund)\b/i.test(title)) return null;
   const ai = /\b(AI|artificial intelligence|machine learning|generative AI|agentic)\b/i.test(text);
-  const fintech = source.sectorHint === 'Fintech' || /\b(fintech|fin tech|payments?|wealthtech|insurtech|banking|lending|financial infrastructure|financial technology|credit underwriting|ledger|reconciliation)\b/i.test(text);
+  const fintech = /\b(fintech|fin tech|payments?|wealthtech|insurtech|banking|lending|financial infrastructure|financial technology|credit underwriting|ledger|reconciliation)\b/i.test(text);
   if (!ai && !fintech) return null;
   const company = (title.match(/^(.+?)\s+(?:Raises?|Raised|Secures?|Secured|Closes?|Closed|Lands?|Bags?)\b/i)?.[1] ?? '').replace(/\s*[,–—:]\s*$/, '').trim().slice(0, 150);
   const normalized = text.replace(/[-–—]/g, ' ');
   const stage = /\bpre\s*seed\b/i.test(normalized) ? 'pre_seed' : /\bseries\s+a\b/i.test(normalized) ? 'series_a' : /\bseries\s+b\b/i.test(normalized) ? 'series_b' : /\bseed\b/i.test(normalized) ? 'seed' : null;
-  // Only the opening company-description sentence is used for location evidence;
-  // investor offices and expansion plans do not establish headquarters.
-  const opening = article.summary.slice(0, 650).split(/(?<=[.!?])\s+/)[0] ?? '';
-  const location = opening.match(/\b(?:a[n]?\s+)?(.{2,100}?)\s*[-,]\s*(?:based|headquartered)\b/i)?.[1] ?? '';
-  const us = /\b(?:US|USA|U\.S\.|United States|New York|San Francisco|Boston|Seattle|Austin|Chicago|Los Angeles|San Diego|Palo Alto|Mountain View|San Jose|Cambridge,?\s*(?:MA|Massachusetts)|Miami|Denver|Atlanta|Dallas|Houston|Washington,?\s*D\.?C|California|Massachusetts|Texas|New Jersey|Connecticut)\b/i.test(location);
-  const foreign = /\b(?:London|UK|United Kingdom|Germany|France|Paris|Berlin|Canada|Toronto|Vancouver|India|Singapore|Israel|Tel Aviv|Australia|Sydney|Stockholm|Sweden|Denmark|Copenhagen|Netherlands|Amsterdam|Switzerland|Zurich|Spain|Madrid|Italy|Milan|China|Beijing|Brazil)\b/i.test(location);
-  if (foreign && !us) return null;
+  const opening = article.summary.slice(0, 1000);
+  const geography = locationFromText(article.summary,company || title);
+  const american = geography.kind === 'us';
+  if (geography.kind === 'foreign') return null;
   if (/\bseries\s+[c-z]\b/i.test(opening) || /\b(?:debt financing|debt funding|credit facility)\b/i.test(opening)) return null;
-  const notes = ['自动提取，需打开原文核对融资公告日期和字段'];
+  const notes = ['后台公开来源研究'];
   if (!company) notes.push('未可靠提取公司名称');
-  if (!us || foreign) notes.push('美国总部待核实');
+  if (!american) notes.push('美国总部待核实');
   if (!stage) notes.push('融资阶段待核实');
   const name = company || title;
-  return { ...article, company_name: name, company_key: name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''), sector: ai && fintech ? 'AI + Fintech' : ai ? 'AI' : 'Fintech', country_code: us && !foreign ? 'US' : null, round_type: stage, amount_text: text.match(/(?:US\$|USD\s*|\$|€|£|EUR\s*|GBP\s*)\s*[\d,.]+\s*(?:billion|million|[MBK]\b)?/i)?.[0]?.trim() ?? '', extraction_notes: notes.join('；') };
+  return { ...article, company_name: name, company_key: name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''), sector: ai && fintech ? 'AI + Fintech' : ai ? 'AI' : 'Fintech', country_code: american ? 'US' : null, hq_location: geography.location, location_kind: geography.kind, hq_evidence: geography.evidence.map(item => ({...item,url:article.source_url})), round_type: stage, amount_text: text.match(/(?:US\$|USD\s*|\$|€|£|EUR\s*|GBP\s*)\s*[\d,.]+\s*(?:billion|million|[MBK]\b)?/i)?.[0]?.trim() ?? '', extraction_notes: notes.join('；') };
 }

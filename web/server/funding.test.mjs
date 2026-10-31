@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { openDatabase } from './database.mjs';
+import { completedResearchFixture } from './research.fixture.mjs';
 import { createFundingService } from './funding.mjs';
 import { SOURCES, reportingWindow, parseFeed, classifyArticle, fetchFeedPage } from './funding-sources.mjs';
 
@@ -36,18 +37,16 @@ test('fetcher rejects off-host redirect and HTTP failures',async()=>{
   await assert.rejects(fetchFeedPage(source,1,async()=>new Response(null,{status:302,headers:{location:'https://private.example/feed'}})),/outside/);
   await assert.rejects(fetchFeedPage(source,1,async()=>new Response('blocked',{status:403})),/403/);
 });
-test('generation filters exact window, deduplicates sources, preserves reviews and validates approvals',async()=>{
+test('generation filters exact window, deduplicates sources, automatically completes research before exposing results',async()=>{
   const db=openDatabase(':memory:');let fail=false;
   const fetchPage=async(s,page)=>{if(fail)throw Error('blocked');return page===1?[article(),article(),article({source_url:'https://www.finsmes.com/old',published_at:'2026-10-24T10:00:00Z'}),article({source_url:'https://www.finsmes.com/future',published_at:'2026-11-01T10:00:00Z'})]:[];};
-  const service=createFundingService(db,{sources:[source],fetchPage,clock:()=>now});
+  const service=createFundingService(db,{sources:[source],fetchPage,clock:()=>now,research:completedResearchFixture});
   try{
     const active=service.generate();assert.throws(()=>service.generate(),/正在生成/);await active;
-    let state=service.snapshot();assert.equal(state.articles.length,1);assert.equal(state.report.status,'complete');assert.equal(db.prepare('SELECT count(*) n FROM companies').get().n,0);
+    let state=service.snapshot();assert.equal(state.articles.length,1);assert.equal(state.report.status,'complete');assert.equal(db.prepare('SELECT count(*) n FROM companies').get().n,1);
     const id=state.articles[0].id;
-    const input={action:'approve',company_name:'FixtureAI',sector:'AI',round_type:'series_a',country_code:'US',announced_on:'2026-10-30'};
-    assert.throws(()=>service.review(id,{...input,country_code:'UK'}),/美国/);
-    assert.throws(()=>service.review(id,{...input,announced_on:'2026-10-01'}),/范围/);
-    service.review(id,input);assert.equal(db.prepare('SELECT count(*) n FROM companies').get().n,1);
+    assert.equal(state.articles[0].review_status,'approved');
+    assert.equal(state.articles[0].company.headquarters,'San Francisco, CA');
     await service.generate();assert.equal(service.snapshot().articles[0].review_status,'approved');assert.equal(db.prepare('SELECT count(*) n FROM funding_rounds').get().n,1);
     assert.match(service.markdown(),/FixtureAI/);assert.match(service.markdown(),/2026-10-30/);
     fail=true;await service.generate();state=service.snapshot();assert.equal(state.report.status,'failed');assert.equal(state.articles.length,1);assert.equal(state.report.sources[0].error,'blocked');
@@ -56,10 +55,10 @@ test('generation filters exact window, deduplicates sources, preserves reviews a
 test('different publishers for the same round do not create duplicate companies or rounds',async()=>{
   const db=openDatabase(':memory:');
   const second={...source,id:'other',name:'Other fixture'};
-  const service=createFundingService(db,{sources:[source,second],clock:()=>now,fetchPage:async(s,page)=>page===1?[article({source_url:`https://www.finsmes.com/${s.id}`,source_name:s.name})]:[]});
-  try{await service.generate();for(const row of service.snapshot().articles)service.review(row.id,{action:'approve',company_name:'FixtureAI',sector:'AI',round_type:'series_a',country_code:'US',announced_on:'2026-10-30'});assert.equal(db.prepare('SELECT count(*) n FROM companies').get().n,1);assert.equal(db.prepare('SELECT count(*) n FROM funding_rounds').get().n,1);assert.equal(service.markdown().split('| FixtureAI |').length-1,1);}finally{await service.stop();db.close();}
+  const service=createFundingService(db,{sources:[source,second],clock:()=>now,research:completedResearchFixture,fetchPage:async(s,page)=>page===1?[article({source_url:`https://www.finsmes.com/${s.id}`,source_name:s.name})]:[]});
+  try{await service.generate();assert.equal(db.prepare('SELECT count(*) n FROM companies').get().n,1);assert.equal(db.prepare('SELECT count(*) n FROM funding_rounds').get().n,1);assert.equal(service.markdown().split('| FixtureAI |').length-1,1);}finally{await service.stop();db.close();}
 });
 test('version 1 user database upgrades without losing existing companies',()=>{
   const dir=mkdtempSync(join(tmpdir(),'signal-upgrade-'));const path=join(dir,'signal.sqlite3');
-  try{const old=new DatabaseSync(path);old.exec(readFileSync(new URL('../database/migrations/001_initial.sql',import.meta.url),'utf8'));old.exec("INSERT INTO companies(name) VALUES('Keep me');PRAGMA user_version=1");old.close();const db=openDatabase(path);assert.equal(db.prepare('SELECT name FROM companies').get().name,'Keep me');assert.equal(db.prepare('PRAGMA user_version').get().user_version,3);assert.equal(db.prepare('SELECT enabled FROM funding_schedule').get().enabled,1);db.close();}finally{rmSync(dir,{recursive:true,force:true});}
+  try{const old=new DatabaseSync(path);old.exec(readFileSync(new URL('../database/migrations/001_initial.sql',import.meta.url),'utf8'));old.exec("INSERT INTO companies(name) VALUES('Keep me');PRAGMA user_version=1");old.close();const db=openDatabase(path);assert.equal(db.prepare('SELECT name FROM companies').get().name,'Keep me');assert.equal(db.prepare('PRAGMA user_version').get().user_version,4);assert.equal(db.prepare('SELECT enabled FROM funding_schedule').get().enabled,1);db.close();}finally{rmSync(dir,{recursive:true,force:true});}
 });

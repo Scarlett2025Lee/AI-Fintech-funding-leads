@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { openDatabase, dashboardStats, dataDirectory, projectRoot } from './database.mjs';
 import { createApp } from './app.mjs';
 import { request } from 'node:http';
+import { completedResearchFixture } from './research.fixture.mjs';
 import { createFundingService } from './funding.mjs';
 import { createCompaniesService } from './companies.mjs';
 
@@ -24,14 +25,14 @@ test('migration retains data after restart and counts only due and active record
     assert.throws(() => db.exec("UPDATE outreach SET status='invalid' WHERE id=1"));
     db.close(); db = openDatabase(filename);
     assert.deepEqual({ ...dashboardStats(db) }, { companies: 1, funding_rounds: 0, contacts: 1, active_outreach: 1, due_follow_ups: 1 });
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 4);
   } finally { db?.close(); rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('funding and company HTTP workflow saves reviewed records and blocks foreign origins', async t => {
+test('funding and company HTTP workflow returns completed company research and blocks foreign origins', async t => {
   const db=openDatabase(':memory:');
   const fixture={source_url:'https://www.finsmes.com/fixture',source_name:'Fixture feed',title:'Fixture Raises $2M in Seed Funding',summary:'Fixture, a Boston, MA-based AI startup, raised seed funding. Fictional fixture.',published_at:'2026-10-30T12:00:00Z'};
-  const funding=createFundingService(db,{sources:[{id:'fixture',name:'Fixture feed',pages:1}],clock:()=>new Date('2026-10-31T12:00:00Z'),fetchPage:async()=>[fixture]});
+  const funding=createFundingService(db,{sources:[{id:'fixture',name:'Fixture feed',pages:1}],clock:()=>new Date('2026-10-31T12:00:00Z'),fetchPage:async()=>[fixture],research:completedResearchFixture});
   const server=createApp(db,{funding,companies:createCompaniesService(db)});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(async()=>{await funding.stop();await new Promise(resolve=>server.close(resolve));db.close();});
@@ -42,10 +43,9 @@ test('funding and company HTTP workflow saves reviewed records and blocks foreig
   let snapshot;
   for(let i=0;i<20;i++){snapshot=await fetch(base+'/api/funding').then(r=>r.json());if(!snapshot.running)break;await new Promise(r=>setTimeout(r,5));}
   assert.equal(snapshot.articles.length,1);
-  const reviewed=await send(`/api/funding/articles/${snapshot.articles[0].id}`,'PUT',{action:'approve',company_name:'Fixture',sector:'AI',country_code:'US',round_type:'seed',announced_on:'2026-10-30'});
-  assert.equal(reviewed.status,200);
+  assert.equal(snapshot.articles[0].review_status,'approved');
   const companies=await fetch(base+'/api/companies').then(r=>r.json());assert.equal(companies.length,1);
-  const company=await fetch(base+`/api/companies/${companies[0].id}`).then(r=>r.json());assert.equal(company.hiring_status,'unknown');
+  const company=await fetch(base+`/api/companies/${companies[0].id}`).then(r=>r.json());assert.equal(company.hiring_status,'no_relevant_roles');
   assert.equal((await send(`/api/companies/${company.id}`,'PUT',{...company,product_summary:'Fictional API fixture'})).status,200);
   assert.match(await fetch(base+'/api/funding/export').then(r=>r.text()),/\| Fixture \|/);
   const disabled=await send('/api/funding/schedule','PUT',{enabled:false});assert.equal((await disabled.json()).schedule.enabled,0);
@@ -55,7 +55,7 @@ test('future database versions and relative data paths are rejected', () => {
   const directory = mkdtempSync(join(tmpdir(), 'signal-newer-'));
   const filename = join(directory, 'signal.sqlite3');
   try {
-    const db = new DatabaseSync(filename); db.exec('PRAGMA user_version=4'); db.close();
+    const db = new DatabaseSync(filename); db.exec('PRAGMA user_version=5'); db.close();
     assert.throws(() => openDatabase(filename), /newer/);
     assert.equal(dataDirectory(undefined), join(projectRoot, 'data'));
     assert.equal(dataDirectory(directory), directory);
