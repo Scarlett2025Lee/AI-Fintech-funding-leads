@@ -87,3 +87,15 @@ Open-Signal.cmd / .ps1              Separate D-drive Chrome profile
 ```
 
 Next: validate live source access on the target machine, then add source-backed company enrichment if requested.
+
+## Automatic updates (v0.3)
+
+Windows users on older versions run the one-time downloads/Install-Signal.zip bootstrap. It pins the installer script's SHA-256, downloads the HTTPS release manifest and ZIP, verifies ZIP/file hashes, stages dependencies on D:, and calls the same transactional Node updater used by normal startup. Existing files are backed up rather than blindly overwritten. All tools/caches/backups remain below D:\Signal. First bootstrap requires stopping the old server; subsequent managed restarts are automatic.
+
+Start-Signal.ps1 holds an exclusive launch lock, ensures Node/dependencies, checks the channel, and restarts itself after an update so new startup instructions take effect. The website can request a managed restart via a JSON POST; the server closes SQLite and exits with code 75. The launcher then updates while the website is stopped, rebuilds, checks exact release version and DB health, confirms, and opens Chrome. Unmanaged npm start sessions show restart instructions instead of trying to terminate an unknown parent.
+
+Update packages are limited to this GitHub repository and program-path allowlist. No archive entry can target data, tools, caches, parent paths, device names, or linked program paths. Installed file inventories permit removing obsolete managed files while retaining user-created unknown files. SQLite is snapshotted before migration; previous dependency directories are retained by rename. Interrupted/unconfirmed or failed startups restore program, dependencies, and the pre-update database. Once a release is healthy and confirmed, later user activity is not automatically rolled back. Keep two generated rollback directories; generated backups are private data and excluded from packages.
+
+GitHub/network/checksum failure leaves current code in place. Failed releases are temporarily blocked until a newer version is published. A Git checkout is not automatically replaced. Updates rely on public/noninteractive HTTPS access to the configured repository; no credentials are embedded. TLS is always verified. Windows process coordination is syntax-checked but not fully Windows-tested; core upgrade/recovery and actual packaged-server startup were tested in an isolated Linux installation with a retained legacy DB.
+
+To publish future iterations: bump package.json/package-lock.json version, run npm run release, then commit/push source, downloads/Signal.zip, SHA file, update.json and generated installer assets together to codex/signal-web. Never publish a ZIP and manifest from different builds. The release script creates release.json inside the ZIP with per-file hashes; it is ignored in the working checkout. Use a strictly newer semantic version so installed clients receive fixes. No further user file replacement is required after bootstrap.

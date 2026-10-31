@@ -1,8 +1,12 @@
+param([switch]$SkipUpdate)
 $ErrorActionPreference = 'Stop'
 $projectPath = $PSScriptRoot
 $transcriptStarted = $false
 $serverProcess = $null
 $exitCode = 0
+$launchLock = $null
+$restartForUpdate = $false
+$pendingUpdate = $false
 Write-Host 'Signal local website - starting...' -ForegroundColor Cyan
 Write-Host "Folder: $projectPath"
 try {
@@ -17,7 +21,14 @@ try {
     $tempPath = Join-Path $cachePath 'tmp'
     $toolsPath = Join-Path $projectPath '.tools'
     $logPath = Join-Path $cachePath 'logs'
+    $pendingUpdate = Test-Path (Join-Path $cachePath 'updates\pending.json')
     New-Item -ItemType Directory -Force -Path $tempPath, $toolsPath, $logPath | Out-Null
+    try { $launchLock = [IO.File]::Open((Join-Path $cachePath 'launch.lock'), 'OpenOrCreate', 'ReadWrite', 'None') }
+    catch { throw 'Signal is already starting or running. Use the existing browser window.' }
+    $portCheck = New-Object Net.Sockets.TcpClient
+    try {
+        if ($portCheck.ConnectAsync('127.0.0.1', 1421).Wait(500) -and $portCheck.Connected) { throw 'Port 1421 is already active. Close the older website server before starting this version.' }
+    } catch [System.AggregateException] { } finally { $portCheck.Dispose() }
     $env:TEMP = $tempPath
     $env:TMP = $tempPath
     $env:npm_config_cache = Join-Path $cachePath 'npm'
@@ -64,6 +75,27 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. Check the error above and retry.' }
         Set-Content -Path $stamp -Value $lockHash
     }
+    $pendingUpdate = Test-Path (Join-Path $cachePath 'updates\pending.json')
+    if (!$SkipUpdate) {
+        Write-Host 'Checking GitHub for automatic updates...'
+        $updateSucceeded = $false
+        try {
+            $updateOutput = & $nodeExe --use-env-proxy 'scripts/update-cli.mjs' check 2> (Join-Path $logPath 'update-check.log')
+            $updateSucceeded = $LASTEXITCODE -eq 0
+        } catch { Write-Warning 'GitHub update check is unavailable; the installed website will still start.' }
+        if ($updateSucceeded) {
+            $update = ($updateOutput -join "`n") | ConvertFrom-Json
+            if ($update.status -eq 'updated' -or $update.status -eq 'rolled-back') {
+                Write-Host "Update result: $($update.status). Restarting the launcher..."
+                $launchLock.Dispose(); $launchLock = $null
+                Stop-Transcript | Out-Null; $transcriptStarted = $false
+                & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -SkipUpdate
+                exit $LASTEXITCODE
+            }
+            Write-Host "Update: $($update.status)"
+        } else { Write-Warning 'Update check failed. Continuing with the installed version.' }
+    }
+    $pendingUpdate = Test-Path (Join-Path $cachePath 'updates\pending.json')
     Write-Host '[3/5] Building the website...'
     & $npmCmd run build
     if ($LASTEXITCODE -ne 0) { throw 'Website build failed. Check the error above.' }
@@ -71,18 +103,26 @@ try {
     Write-Host '[4/5] Starting the local website and SQLite...'
     $stdoutPath = Join-Path $logPath 'server.stdout.log'
     $stderrPath = Join-Path $logPath 'server.stderr.log'
+    $env:SIGNAL_MANAGED_LAUNCHER = '1'
     $serverProcess = Start-Process -FilePath $nodeExe -ArgumentList '--use-env-proxy server/index.mjs' -WorkingDirectory $projectPath -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+    $null = $serverProcess.Handle
     $ready = $false
+    $expectedVersion = (Get-Content 'package.json' -Raw | ConvertFrom-Json).version
     for ($attempt = 0; $attempt -lt 50; $attempt++) {
         if ($serverProcess.HasExited) { throw 'Website server exited during startup. See the server error below.' }
         try {
             $health = Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:1421/api/health' -TimeoutSec 1
             $result = $health.Content | ConvertFrom-Json
-            if ($result.status -eq 'ok' -and $result.database -eq 'connected') { $ready = $true; break }
+            if ($result.status -eq 'ok' -and $result.database -eq 'connected' -and $result.version -eq $expectedVersion) { $ready = $true; break }
         } catch { }
         Start-Sleep -Milliseconds 200
     }
     if (!$ready -or $serverProcess.HasExited) { throw 'Website did not become ready on port 1421. See the server error below.' }
+    if ($pendingUpdate) {
+        & $nodeExe --use-env-proxy 'scripts/update-cli.mjs' confirm
+        if ($LASTEXITCODE -ne 0) { throw 'Could not confirm the new release; rolling back.' }
+        $pendingUpdate = $false
+    }
     Write-Host '[5/5] Website ready: http://127.0.0.1:1421' -ForegroundColor Green
     Write-Host "Your data: $env:SIGNAL_DATA_DIR"
     Write-Host 'Opening Google Chrome with its profile/cache on D:...'
@@ -95,7 +135,8 @@ try {
     while (!$serverProcess.HasExited) { Start-Sleep -Milliseconds 500 }
     $serverProcess.WaitForExit()
     $exitCode = $serverProcess.ExitCode
-    if ($exitCode -ne 0) { throw "Website server stopped with exit code $exitCode." }
+    if ($exitCode -eq 75) { $restartForUpdate = $true; $exitCode = 0 }
+    elseif ($exitCode -ne 0) { throw "Website server stopped with exit code $exitCode." }
 } catch {
     $exitCode = 1
     Write-Host ''
@@ -106,8 +147,19 @@ try {
         Write-Host "Logs are in: $logPath"
     }
     Write-Host 'Please share the error above or .cache\logs\startup.log.'
+    if ($pendingUpdate -and (Test-Path $nodeExe)) {
+        if ($serverProcess -and !$serverProcess.HasExited) { Stop-Process -Id $serverProcess.Id -ErrorAction SilentlyContinue; $serverProcess.WaitForExit() }
+        Write-Host 'Restoring the previous program, dependencies and pre-update database...'
+        & $nodeExe --use-env-proxy 'scripts/update-cli.mjs' rollback
+        if ($LASTEXITCODE -eq 0) { $restartForUpdate = $true; $exitCode = 0 }
+    }
 } finally {
     if ($serverProcess -and !$serverProcess.HasExited) { Stop-Process -Id $serverProcess.Id -ErrorAction SilentlyContinue }
     if ($transcriptStarted) { Stop-Transcript | Out-Null }
+    if ($launchLock) { $launchLock.Dispose() }
+}
+if ($restartForUpdate) {
+    & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File (Join-Path $projectPath 'Start-Signal.ps1')
+    exit $LASTEXITCODE
 }
 exit $exitCode

@@ -4,6 +4,7 @@ import { Activity, ArrowRight, ArrowUpRight, Bell, BriefcaseBusiness, Building2,
 import { getDashboardStats, hasLocalServer, type DashboardStats } from './lib/database';
 import FundingFeed from './FundingFeed';
 import Companies from './Companies';
+import UpdateNotice from './UpdateNotice';
 
 const sections: { path: string; label: string; icon: LucideIcon; group: string; description: string; next: string }[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard, group: 'WORKSPACE', description: 'A clear view of your next opportunity.', next: '' },
@@ -44,7 +45,7 @@ function Dashboard() {
     { label: 'Follow-ups due', key: 'due_follow_ups', icon: Bell, detail: 'Your next touchpoints', path: '/follow-ups' },
   ];
   return <>
-    <div className="page-heading"><div><div className="eyebrow">YOUR SEARCH, WITH INTENTION</div><h1>A little focus. A lot of possibility.</h1><p>Your workspace for finding the right teams and starting better conversations.</p></div><span className="phase-badge"><span className="status-dot" />Funding & companies · v0.2</span></div>
+    <div className="page-heading"><div><div className="eyebrow">YOUR SEARCH, WITH INTENTION</div><h1>A little focus. A lot of possibility.</h1><p>Your workspace for finding the right teams and starting better conversations.</p></div><span className="phase-badge"><span className="status-dot" />Funding & companies · v0.3</span></div>
     <div className={`runtime-notice ${error ? 'notice-error' : ''}`} role="status"><Database size={16} /><span>{error ? 'Could not read your local database. Your data has not been changed.' : serverAvailable ? stats ? 'Connected to your local SQLite database.' : 'Opening your local database…' : 'Offline layout preview · Start the local website to connect to SQLite.'}</span>{error && <button onClick={() => setAttempt(value => value + 1)}><RefreshCw size={14} />Retry</button>}</div>
     <section className="metrics" aria-label="Search statistics">{metrics.map(({ label, key, icon: Icon, detail, path }) => <NavLink to={path} className="metric-card" key={key}><div className="metric-top"><span>{label}</span><Icon size={18} /></div><strong>{stats ? stats[key] : '—'}</strong><div className="metric-foot"><span>{detail}</span><ArrowUpRight size={15} /></div></NavLink>)}</section>
     <div className="dashboard-grid"><section className="start-card"><div className="section-kicker"><span className="small-icon"><Sparkles size={17} /></span> MAKE YOUR NEXT MOVE</div><h2>Good opportunities start<br />with a little signal.</h2><p>Discover a team building something you care about.<br className="wide-only" /> Find your angle. Start a conversation.</p><NavLink to="/funding" className="primary-button">Explore Funding Feed <ArrowRight size={16} /></NavLink><div className="target-tags"><span>AI & fintech</span><span>Seed → Series B</span><span>Product · GTM · Data</span></div></section>
@@ -60,5 +61,5 @@ function SectionPage({ section }: { section: typeof sections[number] }) {
 }
 
 export default function App() {
-  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><Sidebar /><div className="main-shell"><header className="topbar"><span>My workspace <ChevronRight size={14} /> Job search</span><span className="topbar-note"><span className="status-dot" />Personal & local</span></header><main id="main-content" tabIndex={-1}><Routes><Route path="/" element={<Dashboard />} /><Route path="/funding" element={<FundingFeed/>}/><Route path="/companies" element={<Companies/>}/>{sections.slice(3).map(section => <Route key={section.path} path={section.path} element={<SectionPage section={section} />} />)}<Route path="*" element={<Navigate to="/" replace />} /></Routes></main></div></div>;
+  return <div className="app-shell"><a className="skip-link" href="#main-content">Skip to content</a><Sidebar /><div className="main-shell"><header className="topbar"><span>My workspace <ChevronRight size={14} /> Job search</span><span className="topbar-note"><span className="status-dot" />Personal & local</span></header><main id="main-content" tabIndex={-1}><UpdateNotice/><Routes><Route path="/" element={<Dashboard />} /><Route path="/funding" element={<FundingFeed/>}/><Route path="/companies" element={<Companies/>}/>{sections.slice(3).map(section => <Route key={section.path} path={section.path} element={<SectionPage section={section} />} />)}<Route path="*" element={<Navigate to="/" replace />} /></Routes></main></div></div>;
 }

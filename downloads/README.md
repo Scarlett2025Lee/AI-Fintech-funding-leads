@@ -1,4 +1,11 @@
-# Signal 网站下载
+# Signal 网站下载与自动更新
+
+**已有旧版请用一次性安装器：[Install-Signal.zip](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Install-Signal.zip)**
+
+先停止旧网站服务，将这个小压缩包解压到 D 盘，双击其中的 Install-Signal.cmd。它会下载并核对安装脚本与发布包，自动升级 D:\Signal，保留数据库、工具及缓存。无需自己覆盖文件。安装时请联网；仓库须能通过 HTTPS 无交互读取。后续启动自动检查更新，网站内也有“更新并重启”。
+
+一次性安装器和 Windows 重启流程尚未在 Windows 实机完整验证；更新核心、故障回滚和真实发布包的升级启动已在 Linux 隔离环境验证。
+
 
 [直接下载 Signal.zip](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Signal.zip)
 
@@ -18,3 +25,7 @@
 ## v0.2 升级
 
 先停止旧网站并备份 D:\Signal\data，再将新版内容覆盖到 D:\Signal；保留 data、.tools、.cache。融资范围为美国 AI/Fintech、Pre-seed 至 Series B，最近 7 个日历日含今天。自动线索需要根据原文核对后保存；公司详细资料当前需人工核实录入。真实源站访问在云端被策略拦截，尚未成功验证抓取；本机请查看“来源检查”，失败不表示没有融资。
+
+## v0.3 自动更新
+
+启动器关闭旧服务后才能替换程序。更新先备份程序、SQLite 一致性快照及变更依赖；新版通过 SQLite/版本健康检查后才确认。安装、构建或启动失败会恢复旧程序和更新前数据库，失败版本不会在下次启动反复重试。保留最近两次更新备份于 D:\Signal\.cache\updates\backup。更新断网时继续使用已装版本。系统正在运行时不直接覆盖文件；网站内按钮会让启动器停止服务、更新、再启动。

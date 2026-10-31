@@ -6,7 +6,9 @@ Weekly lists of recently funded AI and fintech startups — US + Europe only, pr
 
 The [Signal website](web/README.md) is a local-first React + TypeScript workspace with a Node.js + SQLite backend. It includes a US-only AI/Fintech funding feed (Pre-seed–Series B), weekly RSS collection with source review, and company profiles with PM/GTM/Data hiring evidence. See the [D-drive quick start](web/START_HERE.zh-CN.md) for Windows setup.
 
-**Windows 下载：** [Signal.zip（直接下载）](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Signal.zip)。解压到 `D:\`，得到 `D:\Signal`，双击 `Start-Signal.cmd`。启动完成后将自动打开浏览器；也可手动双击 `Open-Signal.cmd`。首次运行需联网下载依赖；Windows 启动脚本尚未实机验证。详见[下载说明](downloads/README.md)。
+**首次接入自动更新：** [下载安装器](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Install-Signal.zip)，解压后双击 `Install-Signal.cmd`，会自动接入 `D:\Signal`，保留现有数据。之后启动自动更新，也可在网站内点击“更新并重启”。
+
+**完整网站包（用于首次安装或手动恢复）：** [Signal.zip（直接下载）](https://github.com/Scarlett2025Lee/AI-Fintech-funding-leads/raw/refs/heads/codex/signal-web/downloads/Signal.zip)。解压到 `D:\`，得到 `D:\Signal`，双击 `Start-Signal.cmd`。启动完成后将自动打开浏览器；也可手动双击 `Open-Signal.cmd`。首次运行需联网下载依赖；Windows 启动脚本尚未实机验证。详见[下载说明](downloads/README.md)。
 
 ---
 

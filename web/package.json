@@ -1,7 +1,7 @@
 {
   "name": "signal-job-search-web",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -12,10 +12,12 @@
     "test:schema": "python3 scripts/check_schema.py",
     "dev:ui": "vite --host 127.0.0.1",
     "start": "node --use-env-proxy server/index.mjs",
-    "test:server": "node --test server/*.test.mjs"
+    "test:server": "node --test server/*.test.mjs",
+    "release": "npm run build && node scripts/export-preview.mjs && node scripts/make-release.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.2",
+    "fflate": "^0.8.3",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
