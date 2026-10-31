@@ -60,3 +60,10 @@ test('RSS US-base evidence survives a successfully read article that omits the l
  const result=await researchCandidate(input,SOURCES[0],{fetchPage:async()=>({url:raw.source_url,html:'<article>FixtureAI raised $12M in Series A funding.</article>'})});
  assert.equal(result.eligibility,'included');assert.match(result.hq_location,/Boston/);
 });
+test('headquarters and hiring are optional when US country evidence is present',async()=>{
+ const fetchPage=async()=>({url:raw.source_url,html:'<article>FixtureAI, an American AI startup, raised $12M in Series A funding.</article>'});
+ const result=await researchCandidate(classifyArticle(raw,SOURCES[0]),SOURCES[0],{fetchPage});
+ assert.equal(result.eligibility,'included');assert.equal(result.country_code,'US');assert.equal(result.hq_location,'');
+ const db=openDatabase(':memory:');const service=createFundingService(db,{sources:[{...SOURCES[0],pages:1}],fetchPage:async()=>[raw],research:async()=>result,clock:()=>new Date('2026-10-31T12:00:00Z')});
+ try{await service.generate();assert.equal(service.snapshot().articles.length,1);assert.equal(service.snapshot().articles[0].company.country_code,'US');assert.equal(service.snapshot().articles[0].company.jobs.length,0);}finally{await service.stop();db.close();}
+});

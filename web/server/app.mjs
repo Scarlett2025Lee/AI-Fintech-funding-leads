@@ -46,6 +46,10 @@ export function createApp(db, { staticRoot = join(projectRoot, 'dist'), funding,
         const text = funding.markdown(Number(url.searchParams.get('report')) || undefined);
         res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': 'attachment; filename="signal-funding-weekly.md"' }); res.end(text); return;
       }
+      if(funding && url.pathname==='/api/funding/diagnostics' && req.method==='GET'){
+        res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Content-Disposition':'attachment; filename="signal-retrieval-diagnostics.json"'});
+        res.end(JSON.stringify(funding.diagnosticsExport(Number(url.searchParams.get('report'))||undefined),null,2));return;
+      }
       if (companies && url.pathname === '/api/companies' && req.method === 'GET') { json(200, companies.list()); return; }
       if (companies && url.pathname === '/api/companies' && req.method === 'POST') { json(201, companies.create(await body())); return; }
       const company = url.pathname.match(/^\/api\/companies\/(\d+)$/);

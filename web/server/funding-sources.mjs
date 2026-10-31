@@ -94,7 +94,7 @@ export function classifyArticle(article, source) {
   const stage = /\bpre\s*seed\b/i.test(normalized) ? 'pre_seed' : /\bseries\s+a\b/i.test(normalized) ? 'series_a' : /\bseries\s+b\b/i.test(normalized) ? 'series_b' : /\bseed\b/i.test(normalized) ? 'seed' : null;
   const opening = article.summary.slice(0, 1000);
   const geography = locationFromText(article.summary,company || title);
-  const american = geography.kind === 'us';
+  const american = geography.kind === 'us'||geography.country_code === 'US';
   if (geography.kind === 'foreign') return null;
   if (/\bseries\s+[c-z]\b/i.test(opening) || /\b(?:debt financing|debt funding|credit facility)\b/i.test(opening)) return null;
   const notes = ['后台公开来源研究'];

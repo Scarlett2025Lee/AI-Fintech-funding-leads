@@ -27,7 +27,12 @@ export function locationFromText(text,companyName,{firstParty=false}={}) {
   }
   const kinds=new Set(evidence.map(e=>e.kind));
   if(kinds.has('conflict')||(kinds.has('us')&&kinds.has('foreign')))return{kind:'conflict',location:'存在多个总部/地区依据',evidence};
-  if(!evidence.length)return{kind:'unknown',location:'',evidence:[]};
+  if(!evidence.length){
+    const patterns=[new RegExp(`\\b(?:US|USA|American|United States)[- ]+(?:[\\w/-]+\\s+){0,5}(?:startup|company|firm|platform)\\s+${company}\\b`,'i'),new RegExp(`${company}\\s*,\\s*an?\\s+(?:US|USA|American|United States)[- ]+(?:[\\w/-]+\\s+){0,5}(?:startup|company|firm|platform)\\b`,'i')];
+    const match=patterns.map(pattern=>text.match(pattern)).find(Boolean);
+    if(match)return{kind:'country_only',country_code:'US',location:'',evidence:[{kind:'country_only',country_code:'US',location:'',quote:match[0]}]};
+    return{kind:'unknown',location:'',evidence:[]};
+  }
   return{...evidence[0],evidence};
 }
 
@@ -45,7 +50,7 @@ export function parsePage(html,url,companyName,{firstParty=false}={}) {
     const country=typeof address.addressCountry==='object'?address.addressCountry?.name:address.addressCountry;
     const location=[address.addressLocality,address.addressRegion,country].filter(Boolean).join(', ');
     // A matched organization's address is labeled as an address, not falsely as a confirmed global HQ.
-    if(location){const american=/^(US|USA|United States(?: of America)?)$/i.test(country??'');const other=country&&!american;structured.push({kind:american?'us':other?'foreign':'unknown',location,quote:`${org.name}: ${location} (Organization.address)`});}
+    if(location){const american=/^(US|USA|United States(?: of America)?)$/i.test(country??'');const other=country&&!american;structured.push({kind:american?'us':other?'foreign':'unknown',country_code:american?'US':null,location,quote:`${org.name}: ${location} (Organization.address)`});}
   }
   const explicit=locationFromText(text,companyName,{firstParty});
   const evidence=[...explicit.evidence,...structured.filter(e=>e.kind!=='unknown')];
@@ -98,5 +103,5 @@ export async function researchArticle(article,source,{signal,fetchPage=fetchPubl
     }catch(error){errors.push('官网：'+error.message);}
   }
   if(!evidence.length)for(const item of location.evidence??[])evidence.push({...item,url:article.source_url});
-  return{...article,summary:body.slice(0,16000),hq_location:location.location||'',country_code:location.kind==='us'?'US':null,location_kind:location.kind,hq_evidence:evidence,research_error:errors.join('；'),company_website:website};
+  return{...article,summary:body.slice(0,16000),hq_location:['country_only','address_only'].includes(location.kind)?'':location.location||'',country_code:location.kind==='us'||location.country_code==='US'?'US':null,location_kind:location.kind,hq_evidence:evidence,research_error:errors.join('；'),company_website:website};
 }

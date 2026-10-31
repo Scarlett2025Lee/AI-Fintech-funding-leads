@@ -106,3 +106,7 @@ Live HTML/publisher/ATS success remains unverified in this cloud instance becaus
 ## v0.3.3: core eligibility and optional data
 
 Core gates are US location evidence, AI/Fintech industry, Pre-seed–Series B and a recent funding news event. A failed optional website/team/careers/contact fetch no longer excludes a company passing those gates; attempted-but-unavailable fields stay empty with explicit access/availability wording. RSS location evidence is retained when the full article omits it. Startup reruns research after this algorithm upgrade. Report diagnostics show read/candidate/included counts and omitted reasons; these are not manual review tasks. Retrieval is still bounded to the configured sources and is not a general web-search engine.
+
+## v0.3.4 eligibility contract
+
+Exactly four conditions apply: recent funding news within seven days, a US company, AI or Fintech, and Pre-seed/Seed/Series A/Series B. Country membership is independent of a detailed headquarters address. Explicit US/American company descriptions or matched company country metadata can establish country without a city. Headquarters, socials, founder/contact data and jobs are nullable enrichment fields. The hiring dropdown has been removed. Missing country extraction is diagnosed as a retrieval failure, never proof the company is not American. A public-article-only diagnostic export supports debugging without manual company verification.

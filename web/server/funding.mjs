@@ -13,7 +13,9 @@ export async function researchCandidate(article,source,{signal,fetchPage,clock=(
   if(!classified)return{...located,eligibility:'excluded',research_error:'原文不符合融资或地区条件'};
   located={...classified,...located,round_type:classified.round_type,sector:classified.sector,amount_text:classified.amount_text};
   if(located.location_kind==='unknown'&&classified.country_code==='US')located={...located,location_kind:'us',country_code:'US',hq_location:classified.hq_location,hq_evidence:classified.hq_evidence};
-  if(located.location_kind!=='us'||!located.round_type)return{...located,eligibility:located.location_kind==='foreign'?'excluded':'research',research_error:located.research_error||'公开资料未能明确支持美国总部与目标融资阶段'};
+  if(located.location_kind==='foreign')return{...located,eligibility:'excluded',research_error:'来源明确为非美国'};
+  if(located.country_code!=='US')return{...located,eligibility:'research',research_error:'国家属性提取失败；并非要求有具体总部地址'};
+  if(!located.round_type)return{...located,eligibility:'research',research_error:'融资阶段未能提取，未加入目标阶段名单'};
   const company=await researchCompany(located,{signal,clock,fetchPage});
   return{...located,eligibility:company.complete?'included':'research',company_profile:company.profile,research_error:company.error||located.research_error};
 }
@@ -24,14 +26,14 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
   let stopped = false;
   let controller;
   let progress={completed:0,total:0};
-  if(db.prepare('SELECT COUNT(*) n FROM funding_articles WHERE classification_version<3').get().n)db.prepare('UPDATE funding_schedule SET last_success_at=NULL,last_attempt_at=NULL WHERE id=1').run();
+  if(db.prepare('SELECT COUNT(*) n FROM funding_articles WHERE classification_version<4').get().n)db.prepare('UPDATE funding_schedule SET last_success_at=NULL,last_attempt_at=NULL WHERE id=1').run();
   // Repair already-stored false positives without deleting user-confirmed records.
-  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<3 AND review_status!='approved'").all()){
+  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<4 AND review_status!='approved'").all()){
     const source=sources.find(s=>s.name===row.source_name)||{sectorHint:row.source_name==='FinTech Global'?'Fintech':undefined};
     const valid=classifyArticle(row,source);
-    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=3 WHERE id=?').run(valid?'research':'excluded',row.id);
+    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=4 WHERE id=?').run(valid?'research':'excluded',row.id);
   }
-  db.prepare("UPDATE funding_articles SET classification_version=3 WHERE review_status='approved' AND classification_version<3").run();
+  db.prepare("UPDATE funding_articles SET classification_version=4 WHERE review_status='approved' AND classification_version<4").run();
 
   function snapshot(reportId) {
     const schedule = db.prepare('SELECT * FROM funding_schedule WHERE id=1').get();
@@ -40,7 +42,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     const rows = report ? db.prepare(`SELECT a.* FROM funding_articles a JOIN report_articles r ON r.article_id=a.id WHERE r.report_id=? ORDER BY a.published_at DESC`).all(report.id) : [];
     const seen=new Set();
     const articles=rows.filter(a=>a.eligibility==='included'&&a.review_status==='approved'&&a.classification_version>=2&&a.researched_at).filter(a=>{const key=a.company_id+':'+a.funding_round_id;if(seen.has(key))return false;seen.add(key);return true;}).map(a=>({...a,hq_evidence:JSON.parse(a.hq_evidence_json),company:detailCompany(a.company_id)}));
-    const reasons=Object.entries(rows.filter(a=>a.eligibility!=='included').reduce((map,a)=>{const key=a.research_error||'融资/地区/阶段不符合或无法取得依据';map[key]=(map[key]||0)+1;return map;},{})).map(([reason,count])=>({reason,count}));
+    const reasons=Object.entries(rows.filter(a=>a.eligibility!=='included'&&a.researched_at===report?.generated_at).reduce((map,a)=>{const key=a.research_error||'融资/地区/阶段不符合或无法取得依据';map[key]=(map[key]||0)+1;return map;},{})).map(([reason,count])=>({reason,count}));
     const diagnostics={read:report?JSON.parse(report.sources_json).reduce((n,s)=>n+(s.fetched||0),0):0,candidates:report?JSON.parse(report.sources_json).reduce((n,s)=>n+(s.candidates||0),0):0,included:articles.length,reasons};
     return { running,progress,diagnostics,omitted:rows.filter(a=>a.eligibility!=='included').length, schedule: { ...schedule, next_due_at: schedule.last_success_at ? new Date(Date.parse(schedule.last_success_at) + 7 * DAY).toISOString() : null }, reports, report: report ? { ...report, sources: JSON.parse(report.sources_json), sources_json: undefined } : null, articles, window: reportingWindow(clock()) };
   }
@@ -90,7 +92,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
         insert.run(article.source_url, article.source_name, article.title, article.summary, article.published_at, article.company_name, article.company_key, article.sector, article.country_code, article.round_type, article.amount_text, article.extraction_notes);
         const { id } = db.prepare('SELECT id FROM funding_articles WHERE source_url=?').get(article.source_url);
         const prior=db.prepare('SELECT review_status FROM funding_articles WHERE id=?').get(id);
-        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=3 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
+        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=4 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
         db.prepare('INSERT OR IGNORE INTO report_articles(report_id,article_id) VALUES(?,?)').run(report.id, id);
       }
       if (status !== 'failed') db.prepare('UPDATE funding_schedule SET last_success_at=? WHERE id=1').run(now.toISOString());
@@ -102,7 +104,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
       if(row.review_status==='rejected')continue;
       if(row.review_status==='approved'){db.exec('BEGIN IMMEDIATE');try{saveProfile(row.company_id,article.company_profile);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');db.prepare("UPDATE funding_articles SET eligibility='research',research_error=? WHERE id=?").run(error.message,row.id);}continue;}
       try{
-        review(row.id,{action:'approve',company_name:article.company_name,sector:article.sector,country_code:'US',round_type:article.round_type,announced_on:easternDay(article.published_at),automatic:true,profile:article.company_profile});
+        review(row.id,{action:'approve',company_name:article.company_name,sector:article.sector,country_code:article.country_code||null,round_type:article.round_type,announced_on:easternDay(article.published_at),automatic:true,profile:article.company_profile});
       }catch(error){db.prepare("UPDATE funding_articles SET eligibility='research',research_error=? WHERE id=?").run(error.message,row.id);}
     }
     return snapshot();
@@ -127,7 +129,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     }
     const name = typeof input.company_name === 'string' ? input.company_name.trim() : '';
     const date = input.announced_on;
-    if (input.action !== 'approve' || !name || name.length > 150 || input.country_code !== 'US' || !stages.includes(input.round_type) || !sectors.includes(input.sector)) throw new FundingError('请确认公司名称、美国总部、AI/Fintech 行业和 Pre-seed 至 Series B 阶段');
+    if (input.action !== 'approve' || !name || name.length > 150 || (!input.automatic && input.country_code !== 'US') || !stages.includes(input.round_type) || !sectors.includes(input.sector)) throw new FundingError('请确认公司名称、美国总部、AI/Fintech 行业和 Pre-seed 至 Series B 阶段');
     if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new FundingError('请填写原文中的有效融资公告日期');
     const related = db.prepare('SELECT r.* FROM funding_reports r JOIN report_articles a ON a.report_id=r.id WHERE a.article_id=?').all(id);
     if (!related.some(report => date >= report.window_start && date <= report.window_end)) throw new FundingError('融资公告日期不在任何关联周报的 7 天范围内');
@@ -135,10 +137,10 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     db.exec('BEGIN IMMEDIATE');
     try {
       let company = db.prepare(`SELECT c.id FROM companies c WHERE lower(c.name)=lower(?) OR c.id IN (SELECT company_id FROM funding_articles WHERE company_key=? AND company_id IS NOT NULL) LIMIT 1`).get(name, key);
-      if (!company) company = { id: Number(db.prepare("INSERT INTO companies(name,sector,country_code,notes) VALUES(?,?,'US',?)").run(name, input.sector, `融资来源：${article.source_url}`).lastInsertRowid) };
+      if (!company) company = { id: Number(db.prepare("INSERT INTO companies(name,sector,country_code,notes) VALUES(?,?,?,?)").run(name, input.sector, input.country_code||null, `融资来源：${article.source_url}`).lastInsertRowid) };
       let round = db.prepare('SELECT id FROM funding_rounds WHERE company_id=? AND round_type=? AND announced_on=?').get(company.id, input.round_type, date);
       if (!round) round = { id: Number(db.prepare('INSERT INTO funding_rounds(company_id,round_type,announced_on,source_url,verified_at,notes) VALUES(?,?,?,?,?,?)').run(company.id, input.round_type, date, article.source_url, clock().toISOString(), `用户根据原文核对；原文金额：${article.amount_text || '未提取'}；行业：${input.sector}`).lastInsertRowid) };
-      db.prepare("UPDATE funding_articles SET company_name=?,company_key=?,sector=?,country_code='US',round_type=?,announced_on=?,review_status='approved',eligibility='included',company_id=?,funding_round_id=?,reviewed_at=? WHERE id=?").run(name, key, input.sector, input.round_type, date, company.id, round.id, clock().toISOString(), id);
+      db.prepare("UPDATE funding_articles SET company_name=?,company_key=?,sector=?,country_code=?,round_type=?,announced_on=?,review_status='approved',eligibility='included',company_id=?,funding_round_id=?,reviewed_at=? WHERE id=?").run(name, key, input.sector, input.country_code||null, input.round_type, date, company.id, round.id, clock().toISOString(), id);
       if(input.automatic&&input.profile){
         saveProfile(company.id,input.profile);
         db.prepare('UPDATE funding_rounds SET notes=? WHERE id=?').run(`程序完成公开来源对照；融资消息发布日期：${date}（并非确认资金交割日期）；原文金额：${article.amount_text||'未披露'}；总部依据见原文。`,round.id);
@@ -181,6 +183,11 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     if (typeof enabled !== 'boolean') throw new FundingError('enabled 必须是 true 或 false');
     db.prepare('UPDATE funding_schedule SET enabled=? WHERE id=1').run(enabled ? 1 : 0);
   }
+  function diagnosticsExport(reportId){
+    const state=snapshot(reportId);
+    const items=state.report?db.prepare(`SELECT a.source_name,a.source_url,a.title,a.summary,a.published_at,a.company_name,a.country_code,a.round_type,a.hq_location,a.hq_evidence_json,a.research_error,a.eligibility,a.researched_at FROM funding_articles a JOIN report_articles r ON r.article_id=a.id WHERE r.report_id=?`).all(state.report.id):[];
+    return{version:'0.3.4',report:state.report,diagnostics:state.diagnostics,items};
+  }
   function tick() {
     if (running || stopped) return;
     const row = db.prepare('SELECT * FROM funding_schedule WHERE id=1').get(); const now = clock().getTime();
@@ -188,7 +195,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     if (row.last_success_at && now - Date.parse(row.last_success_at) < 7 * DAY) return;
     generate().catch(error => console.error('Funding report failed:', error.message));
   }
-  return { snapshot, generate, review, markdown, setSchedule,
+  return { snapshot, generate, review, markdown, setSchedule,diagnosticsExport,
     start() { timer = setInterval(tick, 15 * 60000); timer.unref(); tick(); },
     async stop() { stopped = true; controller?.abort(); clearInterval(timer); await active?.catch(() => {}); },
   };
