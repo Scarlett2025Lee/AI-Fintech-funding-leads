@@ -31,7 +31,7 @@ npm start
 
 Open `http://127.0.0.1:1421` on the computer running the server. This is a local website, not a published Internet address. Servers in a cloud task do not make your laptop's localhost work. The service binds only to `127.0.0.1` and rejects unrecognized Host headers; do not expose this personal-data scaffold to the Internet without a separate deployment/authentication design.
 
-The Windows launcher `Start-Signal.cmd` calls `Start-Signal.ps1`. It requires the project to be on D:, downloads portable Node 24.19.0 from nodejs.org on first use, checks the official SHA-256 manifest, installs locked dependencies, builds the website, and starts it. Tools, npm cache, process temporary files, and database all use directories under the project on D:. It needs Internet access for the first setup, but does not install Node globally. The launcher prints five progress stages, keeps the CMD window open on exit, and saves diagnostics under `.cache/logs/`. Once the health endpoint confirms SQLite is connected, it opens Edge with a separate profile/cache under the project on D:. `Open-Signal.cmd` remains available to reopen the browser. The launcher owns its server process and stops it when interrupted.
+The Windows launcher `Start-Signal.cmd` calls `Start-Signal.ps1`. It requires the project to be on D:, downloads portable Node 24.19.0 from nodejs.org on first use, checks the official SHA-256 manifest, installs locked dependencies, builds the website, and starts it. Tools, npm cache, process temporary files, and database all use directories under the project on D:. It needs Internet access for the first setup, but does not install Node globally. The launcher prints five progress stages, keeps the CMD window open on exit, and saves diagnostics under `.cache/logs/`. Once the health endpoint confirms SQLite is connected, it opens Chrome with a separate profile/cache under the project on D:. `Open-Signal.cmd` remains available to reopen the browser. The launcher owns its server process and stops it when interrupted.
 
 The Windows launchers have not been executed in this Linux environment. The Node/HTTP/SQLite workflow has been tested here. Windows itself, PowerShell, antivirus, and an already installed browser may still use system files on C:; the application cannot guarantee zero system-disk writes.
 
@@ -51,7 +51,7 @@ Back up the entire `data` folder with the server stopped before upgrades. Its co
 npm run preview:export
 ```
 
-Copy `dist/signal-preview.html` to any folder on D: and open that file in Edge or Chrome. Scripts and styles are embedded. This is a navigation/layout preview only: it does not connect to SQLite or save records. Use the full local website for SQLite.
+Copy `dist/signal-preview.html` to any folder on D: and open that file in Chrome or Edge. Scripts and styles are embedded. This is a navigation/layout preview only: it does not connect to SQLite or save records. Use the full local website for SQLite.
 
 ## Validation
 
@@ -75,7 +75,7 @@ server/index.mjs                    Server lifecycle and loopback binding
 database/migrations/001_initial.sql Initial SQLite schema
 scripts/dev.mjs                     Frontend + backend development runner
 Start-Signal.cmd / .ps1             D-drive Windows setup/start
-Open-Signal.cmd / .ps1              Separate D-drive Edge profile
+Open-Signal.cmd / .ps1              Separate D-drive Chrome profile
 ```
 
 Next slice: company create/list/edit through validated API endpoints, followed by a source-preserving import of the existing funding digests.

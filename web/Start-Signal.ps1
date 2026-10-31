@@ -85,7 +85,7 @@ try {
     if (!$ready -or $serverProcess.HasExited) { throw 'Website did not become ready on port 1421. See the server error below.' }
     Write-Host '[5/5] Website ready: http://127.0.0.1:1421' -ForegroundColor Green
     Write-Host "Your data: $env:SIGNAL_DATA_DIR"
-    Write-Host 'Opening Edge with its profile/cache on D:...'
+    Write-Host 'Opening Google Chrome with its profile/cache on D:...'
     try { & (Join-Path $projectPath 'Open-Signal.ps1') }
     catch {
         Write-Warning $_.Exception.Message
