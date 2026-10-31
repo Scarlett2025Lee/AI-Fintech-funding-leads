@@ -7,7 +7,7 @@
 1. 下载时将压缩包保存到 D 盘。
 2. 右键 → 全部解压，目标选择 `D:\`。解压后应有 `D:\Signal\Start-Signal.cmd`。
 3. 双击 `Start-Signal.cmd`，第一次联网准备便携 Node 与依赖。保持窗口打开。
-4. 等待显示 `Signal website: http://127.0.0.1:1421` 后，双击 `Open-Signal.cmd`。
+4. 等待出现 `[5/5] Website ready` 后，会自动打开浏览器；也可手动双击 `Open-Signal.cmd`。
 
 源码、数据库、便携 Node、npm 缓存和专用 Edge 配置均按项目目录放在 D 盘。Windows 系统自身仍可能写入 C 盘。当前仅有侧栏、页面骨架和 SQLite 计数；其他功能待开发。
 
