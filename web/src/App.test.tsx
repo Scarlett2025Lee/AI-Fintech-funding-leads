@@ -27,7 +27,7 @@ describe('workspace navigation', () => {
       await user.click(link);
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(link.textContent!);
-      if (link.textContent!=='公司发现') expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
+      if (link.textContent!=='company') expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
     }
     await user.click(within(navigation).getByRole('link', { name: 'Dashboard' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A little focus.');
@@ -35,7 +35,7 @@ describe('workspace navigation', () => {
 
   it('supports direct section routes and recovers unknown routes', () => {
     const view = renderApp('/companies');
-    expect(screen.getByRole('heading', { level: 1, name: '公司发现' })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1, name: 'company' })).toBeVisible();
     view.unmount();
     renderApp('/missing');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A little focus.');
