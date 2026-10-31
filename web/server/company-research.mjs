@@ -49,8 +49,11 @@ export function profileFromPage(html,url,name) {
 
 export function atsEndpoint(raw){const u=new URL(raw);const board=u.searchParams.get('for')||u.pathname.split('/').filter(Boolean)[0];if(!board||!/^[\w.-]+$/.test(board))return null;if(/(^|\.)greenhouse\.io$/.test(u.hostname))return{kind:'greenhouse',url:`https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`};if(u.hostname==='jobs.lever.co')return{kind:'lever',url:`https://api.lever.co/v0/postings/${board}?mode=json`};if(u.hostname==='jobs.ashbyhq.com')return{kind:'ashby',url:`https://api.ashbyhq.com/posting-api/job-board/${board}`};return null;}
 export async function researchCompany(article,{signal,fetchPage=fetchPublicPage,clock=()=>new Date()}={}) {
-  const website=article.company_website;if(!website)return{complete:false,error:'未从原文取得公司官网链接'};
+  const website=article.company_website;
   const checked=clock().toISOString().slice(0,10);const pages=[];const results=[];let hiringURL='';
+  const errors=[];
+  const fallback=error=>({complete:true,error,profile:{website:website||'',headquarters:article.hq_location,product_summary:article.summary.slice(0,1500),offices:'',info_source_url:article.source_url,info_checked_on:checked,hiring_source_url:'',hiring_checked_on:checked,hiring_status:'unknown',founders:[],jobs:[]},pages});
+  if(!website)return fallback('融资来源未提供可识别的官网链接；扩展资料未取得');
   try {
     const home=await fetchPage(website,{signal});pages.push(home.url);const homeResult=profileFromPage(home.html,home.url,article.company_name);results.push(homeResult);
     const queue=[...new Map(homeResult.links.map(link=>[link.url,link])).values()].sort((a,b)=>['careers','team','about','contact'].indexOf(a.kind)-['careers','team','about','contact'].indexOf(b.kind));
@@ -58,6 +61,7 @@ export async function researchCompany(article,{signal,fetchPage=fetchPublicPage,
     async function readJobs(link){const endpoint=atsEndpoint(link);if(!endpoint)return null;const page=await fetchPage(endpoint.url,{signal,format:'json'});pages.push(page.url);const data=JSON.parse(page.html);const all=endpoint.kind==='lever'?data:data.jobs;if(!Array.isArray(all))throw Error('招聘数据结构不正确');return all.flatMap(item=>{const title=item.title||item.text;const track=jobTrack(title||'');const url=https(item.absolute_url||item.hostedUrl||item.jobUrl,link);return track&&url?[{title,track,url,evidence:title,source_url:link}]:[];});}
     for(const entry of queue.slice(0,4)){
       if(seen.has(entry.url))continue;seen.add(entry.url);
+      try{
       if(entry.kind==='careers'){const jobs=await readJobs(entry.url);if(jobs){hiringURL=entry.url;results.push({...homeResult,founders:[],offices:[],jobs,links:[]});continue;}}
       const page=await fetchPage(entry.url,{signal});pages.push(page.url);if(entry.kind==='careers')hiringURL=page.url;
       const result=profileFromPage(page.html,page.url,article.company_name);results.push(result);
@@ -65,6 +69,7 @@ export async function researchCompany(article,{signal,fetchPage=fetchPublicPage,
       if(entry.kind==='careers')for(const board of result.links.filter(link=>link.kind==='careers'&&!seen.has(link.url)).slice(0,1)){
         seen.add(board.url);const jobs=await readJobs(board.url);if(jobs){results.push({...homeResult,founders:[],offices:[],jobs,links:[]});continue;}const boardPage=await fetchPage(board.url,{signal});pages.push(boardPage.url);results.push(profileFromPage(boardPage.html,boardPage.url,article.company_name));
       }
+      }catch(error){errors.push(`${entry.kind} 页面：${error.message}`);}
     }
     const first=key=>results.find(row=>row[key])?.[key]||'';
     const unique=(list,key)=>[...new Map(list.map(row=>[row[key],row])).values()];
@@ -72,6 +77,6 @@ export async function researchCompany(article,{signal,fetchPage=fetchPublicPage,
     const jobs=unique(results.flatMap(row=>row.jobs),'url').slice(0,50).map(job=>({...job,checked_on:checked}));
     const parsed=parsePage(home.html,home.url,article.company_name,{firstParty:true});
     const description=load(home.html)('meta[name="description"]').attr('content')||parsed.text.slice(0,500);
-    return{complete:true,profile:{website:home.url,headquarters:article.hq_location,product_summary:description.slice(0,2000),offices:[...new Set(results.flatMap(row=>row.offices))].join('\n')||article.hq_location,x_url:first('x_url'),linkedin_url:first('linkedin_url'),public_email:first('public_email'),public_phone:first('public_phone'),recruiting_email:first('recruiting_email'),recruiting_phone:first('recruiting_phone'),info_source_url:home.url,info_checked_on:checked,hiring_source_url:hiringURL||home.url,hiring_checked_on:checked,hiring_status:jobs.length?'roles_found':hiringURL?'no_relevant_roles':'unknown',founders,jobs,research_pages:pages},pages};
-  }catch(error){return{complete:false,error:'公司公开页面查询未完成：'+error.message,pages};}
+    return{complete:true,error:errors.join('；'),profile:{website:home.url,headquarters:article.hq_location,product_summary:description.slice(0,2000),offices:[...new Set(results.flatMap(row=>row.offices))].join('\n')||article.hq_location,x_url:first('x_url'),linkedin_url:first('linkedin_url'),public_email:first('public_email'),public_phone:first('public_phone'),recruiting_email:first('recruiting_email'),recruiting_phone:first('recruiting_phone'),info_source_url:home.url,info_checked_on:checked,hiring_source_url:hiringURL||home.url,hiring_checked_on:checked,hiring_status:jobs.length?'roles_found':hiringURL&&!errors.length?'no_relevant_roles':'unknown',founders,jobs,research_pages:pages},pages};
+  }catch(error){return fallback('官网访问受限：'+error.message);}
 }

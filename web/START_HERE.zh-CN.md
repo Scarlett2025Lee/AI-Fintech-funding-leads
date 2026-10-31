@@ -111,3 +111,7 @@ Funding Feed 与 Companies 已合并为“公司发现”。点击“生成本�
 无法明确支持美国总部、阶段或公司页面查询未完成的结果不展示；旧误入选记录自动隐藏。邮箱电话等在已查页面未找到时如实显示，不编造。日期标为融资消息发布日期，不冒充资金交割日。公开网页与反爬限制可能影响结果覆盖，云环境目前无法成功连接这些新闻源，真实页面效果需在本机确认。
 
 已接入自动更新的版本直接在顶部点击“更新并重启”，或关闭服务后重新启动。无需覆盖文件。
+
+## v0.3.3: core eligibility and optional data
+
+Core gates are US location evidence, AI/Fintech industry, Pre-seed–Series B and a recent funding news event. A failed optional website/team/careers/contact fetch no longer excludes a company passing those gates; attempted-but-unavailable fields stay empty with explicit access/availability wording. RSS location evidence is retained when the full article omits it. Startup reruns research after this algorithm upgrade. Report diagnostics show read/candidate/included counts and omitted reasons; these are not manual review tasks. Retrieval is still bounded to the configured sources and is not a general web-search engine.

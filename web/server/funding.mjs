@@ -12,6 +12,7 @@ export async function researchCandidate(article,source,{signal,fetchPage,clock=(
   const classified=classifyArticle({...located,summary:located.summary+'\n'+article.summary},source);
   if(!classified)return{...located,eligibility:'excluded',research_error:'原文不符合融资或地区条件'};
   located={...classified,...located,round_type:classified.round_type,sector:classified.sector,amount_text:classified.amount_text};
+  if(located.location_kind==='unknown'&&classified.country_code==='US')located={...located,location_kind:'us',country_code:'US',hq_location:classified.hq_location,hq_evidence:classified.hq_evidence};
   if(located.location_kind!=='us'||!located.round_type)return{...located,eligibility:located.location_kind==='foreign'?'excluded':'research',research_error:located.research_error||'公开资料未能明确支持美国总部与目标融资阶段'};
   const company=await researchCompany(located,{signal,clock,fetchPage});
   return{...located,eligibility:company.complete?'included':'research',company_profile:company.profile,research_error:company.error||located.research_error};
@@ -23,12 +24,14 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
   let stopped = false;
   let controller;
   let progress={completed:0,total:0};
+  if(db.prepare('SELECT COUNT(*) n FROM funding_articles WHERE classification_version<3').get().n)db.prepare('UPDATE funding_schedule SET last_success_at=NULL,last_attempt_at=NULL WHERE id=1').run();
   // Repair already-stored false positives without deleting user-confirmed records.
-  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<2 AND review_status!='approved'").all()){
+  for(const row of db.prepare("SELECT * FROM funding_articles WHERE classification_version<3 AND review_status!='approved'").all()){
     const source=sources.find(s=>s.name===row.source_name)||{sectorHint:row.source_name==='FinTech Global'?'Fintech':undefined};
     const valid=classifyArticle(row,source);
-    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=2 WHERE id=?').run(valid?'research':'excluded',row.id);
+    db.prepare('UPDATE funding_articles SET eligibility=?,classification_version=3 WHERE id=?').run(valid?'research':'excluded',row.id);
   }
+  db.prepare("UPDATE funding_articles SET classification_version=3 WHERE review_status='approved' AND classification_version<3").run();
 
   function snapshot(reportId) {
     const schedule = db.prepare('SELECT * FROM funding_schedule WHERE id=1').get();
@@ -37,7 +40,9 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
     const rows = report ? db.prepare(`SELECT a.* FROM funding_articles a JOIN report_articles r ON r.article_id=a.id WHERE r.report_id=? ORDER BY a.published_at DESC`).all(report.id) : [];
     const seen=new Set();
     const articles=rows.filter(a=>a.eligibility==='included'&&a.review_status==='approved'&&a.classification_version>=2&&a.researched_at).filter(a=>{const key=a.company_id+':'+a.funding_round_id;if(seen.has(key))return false;seen.add(key);return true;}).map(a=>({...a,hq_evidence:JSON.parse(a.hq_evidence_json),company:detailCompany(a.company_id)}));
-    return { running,progress,omitted:rows.filter(a=>a.eligibility!=='included').length, schedule: { ...schedule, next_due_at: schedule.last_success_at ? new Date(Date.parse(schedule.last_success_at) + 7 * DAY).toISOString() : null }, reports, report: report ? { ...report, sources: JSON.parse(report.sources_json), sources_json: undefined } : null, articles, window: reportingWindow(clock()) };
+    const reasons=Object.entries(rows.filter(a=>a.eligibility!=='included').reduce((map,a)=>{const key=a.research_error||'融资/地区/阶段不符合或无法取得依据';map[key]=(map[key]||0)+1;return map;},{})).map(([reason,count])=>({reason,count}));
+    const diagnostics={read:report?JSON.parse(report.sources_json).reduce((n,s)=>n+(s.fetched||0),0):0,candidates:report?JSON.parse(report.sources_json).reduce((n,s)=>n+(s.candidates||0),0):0,included:articles.length,reasons};
+    return { running,progress,diagnostics,omitted:rows.filter(a=>a.eligibility!=='included').length, schedule: { ...schedule, next_due_at: schedule.last_success_at ? new Date(Date.parse(schedule.last_success_at) + 7 * DAY).toISOString() : null }, reports, report: report ? { ...report, sources: JSON.parse(report.sources_json), sources_json: undefined } : null, articles, window: reportingWindow(clock()) };
   }
 
   async function generateReport() {
@@ -85,7 +90,7 @@ export function createFundingService(db, { sources = SOURCES, fetchPage = fetchF
         insert.run(article.source_url, article.source_name, article.title, article.summary, article.published_at, article.company_name, article.company_key, article.sector, article.country_code, article.round_type, article.amount_text, article.extraction_notes);
         const { id } = db.prepare('SELECT id FROM funding_articles WHERE source_url=?').get(article.source_url);
         const prior=db.prepare('SELECT review_status FROM funding_articles WHERE id=?').get(id);
-        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=2 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
+        if(prior.review_status!=='rejected')db.prepare(`UPDATE funding_articles SET summary=?,eligibility=?,hq_location=?,hq_evidence_json=?,research_error=?,researched_at=?,company_website=?,classification_version=3 WHERE id=?`).run(article.summary,article.eligibility||'research',article.hq_location||'',JSON.stringify(article.hq_evidence||[]),article.research_error||'',now.toISOString(),article.company_website||'',id);
         db.prepare('INSERT OR IGNORE INTO report_articles(report_id,article_id) VALUES(?,?)').run(report.id, id);
       }
       if (status !== 'failed') db.prepare('UPDATE funding_schedule SET last_success_at=? WHERE id=1').run(now.toISOString());

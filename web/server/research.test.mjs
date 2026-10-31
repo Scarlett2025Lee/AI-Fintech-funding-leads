@@ -48,3 +48,15 @@ test('official role extraction excludes engineering and recognizes the three req
  assert.equal(atsEndpoint('https://jobs.lever.co/fixture').kind,'lever');assert.equal(atsEndpoint('https://job-boards.greenhouse.io/fixture').kind,'greenhouse');
  const parsed=profileFromPage(documents['https://fixture.example.com/'],'https://fixture.example.com/','FixtureAI');assert.equal(parsed.linkedin_url,'https://linkedin.com/company/fixture');
 });
+test('optional website and careers failures do not exclude a company meeting the core funding criteria',async()=>{
+ const input=classifyArticle(raw,SOURCES[0]);
+ const blocked=await researchCandidate(input,SOURCES[0],{fetchPage:async url=>{if(new URL(url).hostname==='www.finsmes.com')return page(url);throw Error('HTTP 403');}});
+ assert.equal(blocked.eligibility,'included');assert.match(blocked.hq_location,/Pittsburgh/);assert.equal(blocked.company_profile.founders.length,0);assert.match(blocked.research_error,/官网访问受限/);
+ const partial=await researchCandidate(input,SOURCES[0],{fetchPage:async url=>{if(url.includes('careers'))throw Error('timeout');return page(url);}});
+ assert.equal(partial.eligibility,'included');assert.equal(partial.company_profile.founders[0].name,'Fixture Founder');
+});
+test('RSS US-base evidence survives a successfully read article that omits the location sentence',async()=>{
+ const input=classifyArticle({...raw,summary:'FixtureAI, a Boston, MA-based AI startup, raised $12M in Series A funding.'},SOURCES[0]);
+ const result=await researchCandidate(input,SOURCES[0],{fetchPage:async()=>({url:raw.source_url,html:'<article>FixtureAI raised $12M in Series A funding.</article>'})});
+ assert.equal(result.eligibility,'included');assert.match(result.hq_location,/Boston/);
+});

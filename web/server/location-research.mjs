@@ -54,7 +54,7 @@ export function parsePage(html,url,companyName,{firstParty=false}={}) {
   const links=[];
   main.find('a[href]').each((_i,node)=>{try{const link=new URL($(node).attr('href'),url);if(link.protocol==='https:')links.push({url:link.href,text:$(node).text().trim()});}catch{}});
   const structuredWebsite=organizations.map(org=>org.url).find(link=>{try{return typeof link==='string'&&new URL(link).protocol==='https:'&&new URL(link).hostname!==new URL(url).hostname;}catch{return false;}});
-  const website=structuredWebsite||links.find(link=>normalize(link.text)===normalize(companyName)&&new URL(link.url).hostname!==new URL(url).hostname&&!/(linkedin|twitter|x)\.com$/.test(new URL(link.url).hostname))?.url||'';
+  const website=structuredWebsite||links.find(link=>(normalize(link.text)===normalize(companyName)||normalize(new URL(link.url).hostname.replace(/^www\./,'').split('.')[0])===normalize(companyName))&&new URL(link.url).hostname!==new URL(url).hostname&&!/(linkedin|twitter|x)\.com$/.test(new URL(link.url).hostname))?.url||'';
   const about=links.filter(link=>new URL(link.url).hostname===new URL(url).hostname&&/about|company|contact|locations/i.test(link.text+' '+new URL(link.url).pathname)).slice(0,2).map(link=>link.url);
   return {text,location,website,about,evidence:evidence.map(e=>({...e,url}))};
 }
@@ -87,7 +87,7 @@ export async function researchArticle(article,source,{signal,fetchPage=fetchPubl
   const evidence=[];const errors=[];let body=article.summary;let location=locationFromText(body,article.company_name);let website='';
   try{
     const page=await fetchPage(article.source_url,{signal});
-    const parsed=parsePage(page.html,page.url,article.company_name);body=parsed.text||body;location=parsed.location;evidence.push(...parsed.evidence);website=parsed.website;
+    const parsed=parsePage(page.html,page.url,article.company_name);body=parsed.text||body;if(parsed.location.kind!=='unknown')location=parsed.location;evidence.push(...parsed.evidence);website=parsed.website;
   }catch(error){errors.push('新闻原文：'+error.message);}
   if(location.kind==='unknown'&&website){
     try{
