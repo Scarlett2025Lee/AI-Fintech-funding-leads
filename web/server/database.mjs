@@ -19,13 +19,14 @@ export function openDatabase(filename = join(dataDirectory(), 'signal.sqlite3'))
   try {
     db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
     const { user_version: version } = db.prepare('PRAGMA user_version').get();
-    if (version > 1) throw new Error('Database is newer than this version of Signal. Refusing to downgrade.');
-    if (version === 0) {
-      const migration = readFileSync(new URL('../database/migrations/001_initial.sql', import.meta.url), 'utf8');
+    const migrations = ['001_initial.sql', '002_funding_feed.sql', '003_company_profiles.sql'];
+    if (version > migrations.length) throw new Error('Database is newer than this version of Signal. Refusing to downgrade.');
+    for (let index = version; index < migrations.length; index++) {
+      const migration = readFileSync(new URL(`../database/migrations/${migrations[index]}`, import.meta.url), 'utf8');
       db.exec('BEGIN IMMEDIATE');
       try {
         db.exec(migration);
-        db.exec('PRAGMA user_version = 1; COMMIT');
+        db.exec(`PRAGMA user_version = ${index + 1}; COMMIT`);
       } catch (error) {
         db.exec('ROLLBACK');
         throw error;

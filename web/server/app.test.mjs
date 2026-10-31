@@ -7,6 +7,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { openDatabase, dashboardStats, dataDirectory, projectRoot } from './database.mjs';
 import { createApp } from './app.mjs';
 import { request } from 'node:http';
+import { createFundingService } from './funding.mjs';
+import { createCompaniesService } from './companies.mjs';
 
 test('migration retains data after restart and counts only due and active records', () => {
   const directory = mkdtempSync(join(tmpdir(), 'signal-db-'));
@@ -22,15 +24,38 @@ test('migration retains data after restart and counts only due and active record
     assert.throws(() => db.exec("UPDATE outreach SET status='invalid' WHERE id=1"));
     db.close(); db = openDatabase(filename);
     assert.deepEqual({ ...dashboardStats(db) }, { companies: 1, funding_rounds: 0, contacts: 1, active_outreach: 1, due_follow_ups: 1 });
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 1);
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 3);
   } finally { db?.close(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('funding and company HTTP workflow saves reviewed records and blocks foreign origins', async t => {
+  const db=openDatabase(':memory:');
+  const fixture={source_url:'https://www.finsmes.com/fixture',source_name:'Fixture feed',title:'Fixture Raises $2M in Seed Funding',summary:'Fixture, a Boston, MA-based AI startup, raised seed funding. Fictional fixture.',published_at:'2026-10-30T12:00:00Z'};
+  const funding=createFundingService(db,{sources:[{id:'fixture',name:'Fixture feed',pages:1}],clock:()=>new Date('2026-10-31T12:00:00Z'),fetchPage:async()=>[fixture]});
+  const server=createApp(db,{funding,companies:createCompaniesService(db)});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  t.after(async()=>{await funding.stop();await new Promise(resolve=>server.close(resolve));db.close();});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  const send=(path,method,body,origin)=>fetch(base+path,{method,headers:{'Content-Type':'application/json',...(origin?{Origin:origin}:{})},body:JSON.stringify(body)});
+  assert.equal((await send('/api/companies','POST',{name:'Injected'},'https://untrusted.example')).status,403);
+  assert.equal((await send('/api/funding/generate','POST',{})).status,202);
+  let snapshot;
+  for(let i=0;i<20;i++){snapshot=await fetch(base+'/api/funding').then(r=>r.json());if(!snapshot.running)break;await new Promise(r=>setTimeout(r,5));}
+  assert.equal(snapshot.articles.length,1);
+  const reviewed=await send(`/api/funding/articles/${snapshot.articles[0].id}`,'PUT',{action:'approve',company_name:'Fixture',sector:'AI',country_code:'US',round_type:'seed',announced_on:'2026-10-30'});
+  assert.equal(reviewed.status,200);
+  const companies=await fetch(base+'/api/companies').then(r=>r.json());assert.equal(companies.length,1);
+  const company=await fetch(base+`/api/companies/${companies[0].id}`).then(r=>r.json());assert.equal(company.hiring_status,'unknown');
+  assert.equal((await send(`/api/companies/${company.id}`,'PUT',{...company,product_summary:'Fictional API fixture'})).status,200);
+  assert.match(await fetch(base+'/api/funding/export').then(r=>r.text()),/\| Fixture \|/);
+  const disabled=await send('/api/funding/schedule','PUT',{enabled:false});assert.equal((await disabled.json()).schedule.enabled,0);
 });
 
 test('future database versions and relative data paths are rejected', () => {
   const directory = mkdtempSync(join(tmpdir(), 'signal-newer-'));
   const filename = join(directory, 'signal.sqlite3');
   try {
-    const db = new DatabaseSync(filename); db.exec('PRAGMA user_version=2'); db.close();
+    const db = new DatabaseSync(filename); db.exec('PRAGMA user_version=4'); db.close();
     assert.throws(() => openDatabase(filename), /newer/);
     assert.equal(dataDirectory(undefined), join(projectRoot, 'data'));
     assert.equal(dataDirectory(directory), directory);

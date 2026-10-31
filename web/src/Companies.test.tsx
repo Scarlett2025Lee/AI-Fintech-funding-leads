@@ -1,0 +1,21 @@
+import { render,screen,waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { expect,it,vi } from 'vitest';
+import Companies from './Companies';
+import { api,type Company } from './lib/api';
+vi.mock('./lib/api',async importOriginal=>({...(await importOriginal<typeof import('./lib/api')>()),api:vi.fn()}));
+vi.mock('./lib/database',()=>({hasLocalServer:()=>true}));
+it('displays sourced company/founder socials and only explicit target-track jobs, then saves edits',async()=>{
+ const company:Company={id:1,name:'Fixture startup',website:'https://example.com',sector:'AI',headquarters:'New York',product_summary:'Fictional AI fixture',notes:'',x_url:'https://x.com/fixture',linkedin_url:'https://linkedin.com/company/fixture',public_email:'',public_phone:'',recruiting_email:'careers@example.com',recruiting_phone:'',offices:'New York',info_source_url:'https://example.com/contact',info_checked_on:'2026-10-31',hiring_status:'roles_found',hiring_source_url:'https://example.com/careers',hiring_checked_on:'2026-10-31',hiring_tracks:'PM',founders:[{id:1,name:'Fixture Founder',title:'CEO',email:'',phone:'',profile_url:'https://linkedin.com/in/founder',source_url:''}],jobs:[{title:'Product Manager',track:'PM',url:'https://example.com/careers/pm',evidence:'Official Product Manager listing',checked_on:'2026-10-31'}],funding:[]};
+ vi.mocked(api).mockReset();vi.mocked(api).mockImplementation(async(path,method,body)=>path==='/api/companies'?[company]:method==='PUT'?body:company);
+ render(<MemoryRouter><Companies/></MemoryRouter>);const user=userEvent.setup();
+ expect(await screen.findByText('Fixture Founder')).toBeVisible();
+ expect(screen.getByRole('link',{name:'X'})).toHaveAttribute('href','https://x.com/fixture');
+ expect(screen.getAllByRole('link',{name:/LinkedIn/}).map(a=>a.getAttribute('href'))).toContain('https://linkedin.com/in/founder');
+ expect(screen.getByRole('link',{name:'Product Manager'})).toHaveAttribute('href','https://example.com/careers/pm');
+ await user.click(screen.getByRole('button',{name:'完善 / 编辑资料'}));
+ const business=screen.getByLabelText('大致业务范围');await user.clear(business);await user.type(business,'Updated fictional product scope');
+ await user.click(screen.getByRole('button',{name:'保存公司资料'}));
+ await waitFor(()=>expect(api).toHaveBeenCalledWith('/api/companies/1','PUT',expect.objectContaining({product_summary:'Updated fictional product scope'})));
+});

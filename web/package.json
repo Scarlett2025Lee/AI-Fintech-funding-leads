@@ -1,20 +1,21 @@
 {
   "name": "signal-job-search-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "tsc --noEmit && vite build",
-    "preview": "node server/index.mjs",
+    "preview": "node --use-env-proxy server/index.mjs",
     "preview:export": "npm run build && node scripts/export-preview.mjs",
     "test": "vitest run",
     "test:schema": "python3 scripts/check_schema.py",
     "dev:ui": "vite --host 127.0.0.1",
-    "start": "node server/index.mjs",
+    "start": "node --use-env-proxy server/index.mjs",
     "test:server": "node --test server/*.test.mjs"
   },
   "dependencies": {
+    "fast-xml-parser": "^5.11.2",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -34,6 +35,6 @@
     "vitest": "^3.0.0"
   },
   "engines": {
-    "node": ">=24.0.0 <25"
+    "node": ">=24.19.0 <25"
   }
 }

@@ -2,10 +2,11 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { dashboardStats, projectRoot } from './database.mjs';
+import { FundingError } from './funding.mjs';
 
 const contentTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
-export function createApp(db, { staticRoot = join(projectRoot, 'dist') } = {}) {
+export function createApp(db, { staticRoot = join(projectRoot, 'dist'), funding, companies } = {}) {
   const root = resolve(staticRoot);
   return createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -16,11 +17,39 @@ export function createApp(db, { staticRoot = join(projectRoot, 'dist') } = {}) {
       res.writeHead(403); res.end('Invalid local hostname'); return;
     }
     const json = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); };
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.setHeader('Allow', 'GET, HEAD'); json(405, { error: 'Method not allowed' }); return;
-    }
     try {
       const url = new URL(req.url, 'http://127.0.0.1');
+      if (!['GET','HEAD'].includes(req.method)) {
+        const knownMutation = (funding && ((req.method === 'POST' && url.pathname === '/api/funding/generate') || (req.method === 'PUT' && (url.pathname === '/api/funding/schedule' || /^\/api\/funding\/articles\/\d+$/.test(url.pathname))))) || (companies && ((req.method === 'POST' && url.pathname === '/api/companies') || (req.method === 'PUT' && /^\/api\/companies\/\d+$/.test(url.pathname))));
+        if (!knownMutation) { res.setHeader('Allow','GET, HEAD'); json(405,{error:'Method not allowed'}); return; }
+        if (req.headers.origin && ![`http://${authority}`, 'http://127.0.0.1:1420', 'http://localhost:1420'].includes(req.headers.origin)) { json(403, { error: 'Invalid request origin' }); return; }
+        if (req.headers['content-type']?.split(';')[0] !== 'application/json') { json(415, { error: 'Use application/json' }); return; }
+      }
+      const body = async () => {
+        const chunks = []; let size = 0;
+        for await (const chunk of req) { size += chunk.length; if (size > 65536) throw new FundingError('请求内容过大', 413); chunks.push(chunk); }
+        const text = Buffer.concat(chunks).toString('utf8');
+        try { const value = JSON.parse(text); if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(); return value; } catch { throw new FundingError('无效的 JSON 请求'); }
+      };
+      if (funding && url.pathname === '/api/funding' && req.method === 'GET') { json(200, funding.snapshot(Number(url.searchParams.get('report')) || undefined)); return; }
+      if (funding && url.pathname === '/api/funding/generate' && req.method === 'POST') {
+        await body();
+        const task = funding.generate(); task.catch(error => console.error('Funding generation:', error.message));
+        json(202, { running: true }); return;
+      }
+      if (funding && url.pathname === '/api/funding/schedule' && req.method === 'PUT') { const input = await body(); funding.setSchedule(input.enabled); json(200, funding.snapshot()); return; }
+      const review = url.pathname.match(/^\/api\/funding\/articles\/(\d+)$/);
+      if (funding && review && req.method === 'PUT') { funding.review(Number(review[1]), await body()); json(200, { ok: true }); return; }
+      if (funding && url.pathname === '/api/funding/export' && req.method === 'GET') {
+        const text = funding.markdown(Number(url.searchParams.get('report')) || undefined);
+        res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': 'attachment; filename="signal-funding-weekly.md"' }); res.end(text); return;
+      }
+      if (companies && url.pathname === '/api/companies' && req.method === 'GET') { json(200, companies.list()); return; }
+      if (companies && url.pathname === '/api/companies' && req.method === 'POST') { json(201, companies.create(await body())); return; }
+      const company = url.pathname.match(/^\/api\/companies\/(\d+)$/);
+      if (companies && company && req.method === 'GET') { json(200, companies.detail(Number(company[1]))); return; }
+      if (companies && company && req.method === 'PUT') { json(200, companies.save(Number(company[1]), await body())); return; }
+      if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); json(405, { error: 'Method not allowed' }); return; }
       if (url.pathname === '/api/health') { json(200, { status: 'ok', database: 'connected' }); return; }
       if (url.pathname === '/api/dashboard') { json(200, dashboardStats(db)); return; }
       if (url.pathname.startsWith('/api/')) { json(404, { error: 'API route not found' }); return; }
@@ -39,6 +68,7 @@ export function createApp(db, { staticRoot = join(projectRoot, 'dist') } = {}) {
         else throw error;
       }
     } catch (error) {
+      if (error instanceof FundingError) { json(error.status, { error: error.message }); return; }
       console.error('Local request failed:', error.message);
       json(500, { error: 'Unable to read local workspace' });
     }

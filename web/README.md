@@ -4,16 +4,24 @@ React + TypeScript + Vite, with a small Node.js 24 HTTP server and embedded SQLi
 
 For Windows on D:, see [中文启动说明](START_HERE.zh-CN.md).
 
-## Current slice
+## Current capabilities (v0.2)
 
-- Eight working sidebar destinations with active states, keyboard focus, and responsive layout.
-- Dashboard reads real aggregate counts through `GET /api/dashboard`, with loading, error, and retry states.
-- SQLite migration with foreign keys, indexes, and constraints for companies, funding rounds, contacts, outreach, email drafts, resumes, projects, matches, and follow-ups.
-- Remaining feature pages are explicitly scaffolded. Company entry, funding import, generation, matching, and reminder workflows are not implemented yet. Nothing sends email.
+- Funding Feed retrieves RSS/Atom from FinSMEs, FinTech Global and Tech.eu. It uses seven calendar days including today in America/New_York, filters AI/Fintech funding, excludes obvious non-US/late-stage/debt/acquisition news, and conservatively extracts company, stage and amount text. Unknown headquarters/stages remain unverified.
+- A user must read the source and confirm US headquarters, Pre-seed through Series B, and the actual announcement date before saving a company/funding round. Article publication date is not assumed to be the financing date. Currency and investors are not invented. Reports export reviewed rounds separately from pending candidates, with cross-source round deduplication.
+- The enabled-by-default weekly schedule checks at startup/every 15 minutes. Successful or partial runs become due after seven days; all-source failures retry no sooner than six hours. While the website is stopped it cannot fetch; next start catches up for the current week only. Manual generation and schedule pause are available.
+- Companies supports search/filtering and saved company X/LinkedIn, founder LinkedIn/public contacts, business summary, HQ/offices, public/recruiting email and phone, source/check dates, and explicit official PM/GTM/Data job titles with URL/quoted evidence/check date. This version requires manual source-backed entry of detailed profiles; automatic founder/contact/website enrichment is not implemented.
+- Hiring unknown is distinct from a checked absence of relevant jobs. Official jobs indicate a hiring signal at the checked date, not a claim about company strategy. Past contact/job history is retained when removing profile displays.
+- The other standalone Contacts/CRM/email/matching/follow-up pages remain scaffolded. No email is sent. No fake companies are seeded.
+
+## Source access and coverage
+
+Public RSS feeds have limited history and can fail, block clients or change their URL. Coverage limits and failures are shown per source; zero retrieved records do not establish no funding occurred. Heuristic extraction produces candidates requiring review, not verified facts. Historical Markdown digests are not silently imported.
+
+Live publisher access in the current cloud instance failed at the outbound proxy (CONNECT 403); successful real feed retrieval is **not yet validated**. Parsing and complete report/review/company/HTTP workflows passed with clearly fictional fixtures, and Chromium verified the actual blocked-source state. Required host additions were saved in the environment draft; to finish cloud live validation review/save those settings and publish the environment. The draft does not change networking on Windows; test Generate locally after upgrading. Destinations: www.finsmes.com, fintech.global, tech.eu, plus their configured www/non-www redirects. No API key is needed. Production/development launchers respect inherited HTTP proxy settings via Node's --use-env-proxy.
 
 ## Development
 
-Use Node.js 24.x (its built-in `node:sqlite` supplies SQLite) and npm. From this `web` directory:
+Use Node.js 24.19.x or later within version 24 (its built-in `node:sqlite` supplies SQLite) and npm. From this `web` directory:
 
 ```sh
 npm ci
@@ -39,9 +47,9 @@ The Windows launchers have not been executed in this Linux environment. The Node
 
 By default, `data/signal.sqlite3` lives under this project, regardless of the shell's working directory. Override it with the absolute path `SIGNAL_DATA_DIR`; relative/empty values are rejected. An unavailable directory causes startup to fail, without a fallback to AppData. Default production port is 1421; `SIGNAL_PORT` can override it when running just the built server. Development's Vite proxy and the Windows browser launcher use 1421.
 
-Migration 001 is applied transactionally and recorded using `PRAGMA user_version`. Existing records survive restart. A database created by a newer application version is rejected. Foreign keys are enabled per connection. No sample companies or personal documents are seeded. If you used an older desktop scaffold, close it and back up its database before copying it to the new selected data directory; no old data is moved or deleted automatically.
+Migrations 001–003 are applied transactionally in order using `PRAGMA user_version`, preserving a populated v1 database. Existing records survive restart. A database created by a newer application version is rejected. Foreign keys are enabled per connection. No sample companies or personal documents are seeded. If you used an older desktop scaffold, close it and back up its database before copying it to the new selected data directory; no old data is moved or deleted automatically.
 
-Amounts use integer minor units with an explicit currency. Funding dates use `YYYY-MM-DD`; future write endpoints should normalize timestamps to UTC ISO 8601 ending in `Z`. Match scores range from 0 to 100, and each match names exactly one resume or project with a rationale. Outreach protects linked company/contact history from deletion. Deleting outreach cascades its drafts, matches, and reminders. The current backend exposes only health and aggregate reads, not arbitrary SQL or filesystem operations.
+Amounts use integer minor units with an explicit currency. Funding dates use `YYYY-MM-DD`; future write endpoints should normalize timestamps to UTC ISO 8601 ending in `Z`. Match scores range from 0 to 100, and each match names exactly one resume or project with a rationale. Outreach protects linked company/contact history from deletion. Deleting outreach cascades its drafts, matches, and reminders. The backend exposes typed funding/report/review/export, company-profile, health and aggregate endpoints. JSON writes have size/origin checks; arbitrary SQL and filesystem operations are not exposed.
 
 Back up the entire `data` folder with the server stopped before upgrades. Its contents are private plain-text SQLite data and are ignored by Git. Resume uploads have not yet been built.
 
@@ -62,7 +70,7 @@ npm run test:server
 npm run test:schema
 ```
 
-UI tests cover navigation, routes, offline layout state, real count rendering, and retry. Server tests execute the actual Node SQLite migration, persistence, aggregate queries, HTTP static/API routing, and access boundaries. Schema tests use Python 3's standard library as an optional developer check; Python is not needed to run the website. On Windows, `py -3 scripts/check_schema.py` is an alternative.
+UI tests cover funding review/generation/errors, company source links/editing, navigation, routes, offline state, counts and retry. Server tests cover legacy migration, date/exclusion/deduplication logic, review/evidence validation, retained contact history, complete HTTP mutations/exports, persistence, routing and access boundaries. Schema tests use Python 3's standard library as an optional developer check; Python is not needed to run the website. On Windows, `py -3 scripts/check_schema.py` is an alternative.
 
 ## Structure
 
@@ -72,10 +80,10 @@ src/lib/database.ts                 Typed HTTP client
 server/database.mjs                 Local storage, migrations, aggregate SQL
 server/app.mjs                      HTTP API and built static website
 server/index.mjs                    Server lifecycle and loopback binding
-database/migrations/001_initial.sql Initial SQLite schema
+database/migrations/                Versioned schema upgrades
 scripts/dev.mjs                     Frontend + backend development runner
 Start-Signal.cmd / .ps1             D-drive Windows setup/start
 Open-Signal.cmd / .ps1              Separate D-drive Chrome profile
 ```
 
-Next slice: company create/list/edit through validated API endpoints, followed by a source-preserving import of the existing funding digests.
+Next: validate live source access on the target machine, then add source-backed company enrichment if requested.

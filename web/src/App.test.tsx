@@ -27,7 +27,7 @@ describe('workspace navigation', () => {
       await user.click(link);
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(link.textContent!);
-      expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
+      if (!['Funding Feed', 'Companies'].includes(link.textContent!)) expect(screen.getByText(/This section is scaffolded/)).toBeVisible();
     }
     await user.click(within(navigation).getByRole('link', { name: 'Dashboard' }));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('A little focus.');

@@ -71,7 +71,7 @@ try {
     Write-Host '[4/5] Starting the local website and SQLite...'
     $stdoutPath = Join-Path $logPath 'server.stdout.log'
     $stderrPath = Join-Path $logPath 'server.stderr.log'
-    $serverProcess = Start-Process -FilePath $nodeExe -ArgumentList 'server/index.mjs' -WorkingDirectory $projectPath -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+    $serverProcess = Start-Process -FilePath $nodeExe -ArgumentList '--use-env-proxy server/index.mjs' -WorkingDirectory $projectPath -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
     $ready = $false
     for ($attempt = 0; $attempt -lt 50; $attempt++) {
         if ($serverProcess.HasExited) { throw 'Website server exited during startup. See the server error below.' }
