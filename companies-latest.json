@@ -1,0 +1,89 @@
+{
+  "week": {
+    "range": "2026-10-26 — 2026-11-01",
+    "tz": "US Eastern"
+  },
+  "qualified": 5,
+  "companies": [
+    {
+      "name": "General Compute",
+      "sector": "AI",
+      "desc": "GPU cloud and AI infrastructure platform providing high-performance compute for AI training and inference workloads",
+      "amount": "Series A · $100M",
+      "announced": "2026-10-27",
+      "investors": "Blackbird Ventures, Abstract Ventures",
+      "hq": "San Francisco, CA",
+      "website": "generalcompute.com",
+      "email": "jason@generalcompute.com",
+      "founder": "Finn Puklowski, CEO",
+      "tag": "match",
+      "tracks": ["GTM"],
+      "hiring": "GTM and Partnerships Manager open (Built In)",
+      "fit": "Series A = first GTM hires; infrastructure narrative (GPU shortage) gives a GTM intern a clear wedge around developer-acquisition and partnership channels"
+    },
+    {
+      "name": "Hyperbolic",
+      "sector": "AI",
+      "desc": "Decentralized GPU marketplace connecting AI developers with idle compute capacity, cutting training and inference costs",
+      "amount": "Series A-1 · $30M",
+      "announced": "2026-10-27",
+      "investors": "Walden Catalyst, Dell Technologies Capital, General Catalyst, Vista Equity Partners",
+      "hq": "San Francisco, CA",
+      "website": "hyperbolic.ai",
+      "email": "none found",
+      "founder": "Jasper Zhang, CEO",
+      "tag": "match",
+      "tracks": ["GTM"],
+      "hiring": "Head of Marketing open (Built In, Mediabistro)",
+      "fit": "Marketing/GTM function actively growing post-Series A-1; strong angle for a candidate who understands developer-focused GTM and the AI infrastructure market"
+    },
+    {
+      "name": "Avante",
+      "sector": "AI",
+      "desc": "AI platform automating prior-authorization and revenue-cycle workflows for healthcare providers",
+      "amount": "Series A · $30M",
+      "announced": "2026-10-27",
+      "investors": "Frist Cressey Ventures, Sorenson Capital, Hearst Ventures",
+      "hq": "Seattle, WA",
+      "website": "avante.ai",
+      "email": "none found",
+      "founder": "Rohan D'Souza, CEO",
+      "tag": "match",
+      "tracks": ["PM", "GTM"],
+      "hiring": "Product Manager + Senior PMM both open (Built In)",
+      "fit": "Healthcare AI at the revenue-cycle layer; PM/GTM intern with healthtech or regulated-workflow experience has immediate credibility post-funding"
+    },
+    {
+      "name": "Plato",
+      "sector": "AI",
+      "desc": "AI platform automating scientific research workflows — literature review, hypothesis generation, and experiment tracking — for biopharma and research labs",
+      "amount": "Series A · $16M",
+      "announced": "2026-10-28",
+      "investors": "Nava Ventures, Gradient Ventures; angel Mustafa Suleyman",
+      "hq": "San Francisco, CA",
+      "website": "plato.so",
+      "email": "none found",
+      "founder": "Robert Farlow, CEO",
+      "tag": "match",
+      "tracks": ["PM"],
+      "hiring": "Project Manager listed (Scoutify)",
+      "fit": "Early Series A with high-profile angels; PM intern with life-sciences or research-automation background can pitch around scoping the first enterprise research workflow"
+    },
+    {
+      "name": "Mochatrade",
+      "sector": "Fintech",
+      "desc": "Social trading platform letting retail crypto traders copy and share strategies across decentralized markets",
+      "amount": "Seed · $6M",
+      "announced": "2026-10-26",
+      "investors": "CoinFund, Coinbase Ventures, Pioneer Fund, Y Combinator",
+      "hq": "New York, NY",
+      "website": "mochatrade.com",
+      "email": "none found",
+      "founder": "",
+      "tag": "cold",
+      "tracks": [],
+      "hiring": "No open PM/GTM/DA roles confirmed",
+      "fit": "YC-backed seed with crypto-native investors; cold outreach still possible — pitch as someone who can bridge the retail-finance and crypto-community growth loops"
+    }
+  ]
+}
