@@ -1,21 +1,21 @@
 {
-  "updated": "2026-11-02",
-  "sent": 7,
+  "updated": "2026-11-03",
+  "sent": 8,
   "replied": 2,
   "call": 1,
-  "rate": "29%",
+  "rate": "25%",
   "rows": [
     {
       "co": "MARC",
       "to": "aaron@marcprop.com",
       "status": "replied",
-      "note": "replied (dean@marcprop.com); call booked Mon Nov 2 9:30-10am EST"
+      "note": "replied by dean@marcprop.com; call booked Mon Nov 2 9:30–10am EST (Scarlett & Dean Fahy)"
     },
     {
       "co": "BOB",
       "to": "contact@joinbob.ai",
       "status": "replied",
-      "note": "replied (tommy@joinbob.ai + follow-up from adam@joinbob.ai)"
+      "note": "replied by tommy@joinbob.ai; follow-up thread from adam@joinbob.ai"
     },
     {
       "co": "CapitalOS",
@@ -26,6 +26,12 @@
     {
       "co": "Fragment",
       "to": "varun@fragment.dev",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Broccoli AI",
+      "to": "aj@broccoli.com",
       "status": "sent",
       "note": "no reply yet - follow up"
     },
