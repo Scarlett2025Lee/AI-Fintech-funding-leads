@@ -1,33 +1,21 @@
 {
-  "updated": "2026-11-03",
+  "updated": "2026-11-04",
   "sent": 8,
   "replied": 2,
-  "call": 1,
+  "call": 2,
   "rate": "25%",
   "rows": [
-    {
-      "co": "MARC",
-      "to": "aaron@marcprop.com",
-      "status": "replied",
-      "note": "replied by dean@marcprop.com; call booked Mon Nov 2 9:30–10am EST (Scarlett & Dean Fahy)"
-    },
     {
       "co": "BOB",
       "to": "contact@joinbob.ai",
       "status": "replied",
-      "note": "replied by tommy@joinbob.ai; follow-up thread from adam@joinbob.ai"
+      "note": "replied; call booked Tue Nov 3 @ 9am with Adam Wininger (rescheduled from Fri Oct 31)"
     },
     {
-      "co": "CapitalOS",
-      "to": "jobs@capitalos.com",
-      "status": "sent",
-      "note": "no reply yet - follow up"
-    },
-    {
-      "co": "Fragment",
-      "to": "varun@fragment.dev",
-      "status": "sent",
-      "note": "no reply yet - follow up"
+      "co": "MARC",
+      "to": "aaron@marcprop.com",
+      "status": "replied",
+      "note": "replied; call booked Mon Nov 2 9:30-10am EST with Dean Fahy (calendar invite received)"
     },
     {
       "co": "Broccoli AI",
@@ -42,6 +30,12 @@
       "note": "no reply yet - follow up"
     },
     {
+      "co": "CapitalOS",
+      "to": "jobs@capitalos.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
       "co": "Mural",
       "to": "start@muralpay.com",
       "status": "sent",
@@ -50,6 +44,12 @@
     {
       "co": "Prism Data",
       "to": "careers@prismdata.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Fragment",
+      "to": "varun@fragment.dev",
       "status": "sent",
       "note": "no reply yet - follow up"
     }
