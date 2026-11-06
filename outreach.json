@@ -1,21 +1,21 @@
 {
-  "updated": "2026-11-05",
+  "updated": "2026-11-06",
   "sent": 8,
   "replied": 2,
   "call": 2,
   "rate": "25%",
   "rows": [
     {
-      "co": "MARC",
-      "to": "aaron@marcprop.com",
-      "status": "replied",
-      "note": "replied by Dean Fahy (dean@marcprop.com); call booked Mon Nov 2 2026 9:30-10am EST"
-    },
-    {
       "co": "BOB",
       "to": "contact@joinbob.ai",
       "status": "replied",
-      "note": "replied by Adam Wininger + Tommy Rodberg; call confirmed for Tuesday (rescheduled from Fri Oct 31)"
+      "note": "replied / call booked - rescheduled to Tuesday with Adam Wininger"
+    },
+    {
+      "co": "MARC",
+      "to": "aaron@marcprop.com",
+      "status": "replied",
+      "note": "replied / call booked Nov 2 9:30-10am EST with Dean Fahy"
     },
     {
       "co": "Broccoli AI",
