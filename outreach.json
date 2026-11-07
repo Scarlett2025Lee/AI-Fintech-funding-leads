@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-06",
+  "updated": "2026-11-07",
   "sent": 8,
   "replied": 2,
   "call": 2,
@@ -9,13 +9,13 @@
       "co": "BOB",
       "to": "contact@joinbob.ai",
       "status": "replied",
-      "note": "replied / call booked - rescheduled to Tuesday with Adam Wininger"
+      "note": "call booked — rescheduled to Tuesday 9am (Adam Wininger; tommy@joinbob.ai also reached out)"
     },
     {
       "co": "MARC",
       "to": "aaron@marcprop.com",
       "status": "replied",
-      "note": "replied / call booked Nov 2 9:30-10am EST with Dean Fahy"
+      "note": "call booked — Mon Nov 2, 9:30–10am EST w/ Dean Fahy (calendar invite received)"
     },
     {
       "co": "Broccoli AI",
