@@ -1,22 +1,87 @@
 {
-  "updated": "2026-11-09",
+  "updated": "2026-11-10",
   "sent": 13,
   "replied": 2,
   "call": 2,
   "rate": "15%",
   "rows": [
-    {"co": "BOB", "to": "contact@joinbob.ai", "status": "replied", "note": "replied; call booked (rescheduled to Tue Nov 3)"},
-    {"co": "MARC", "to": "aaron@marcprop.com", "status": "replied", "note": "replied; call booked Mon Nov 2, 9:30am EST"},
-    {"co": "Finpilot", "to": "lakshay.chauhan@finpilot.ai", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Finpilot", "to": "brandon.pelfrey@finpilot.ai", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Fragment", "to": "frank@fragmentdata.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Fragment", "to": "pranav@fragmentdata.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Fragment", "to": "varun@fragment.dev", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Vera Health", "to": "taieb@verahealth.ai", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Broccoli AI", "to": "aj@broccoli.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Slingshot", "to": "hello@slingshotinsurance.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "CapitalOS", "to": "jobs@capitalos.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Mural", "to": "start@muralpay.com", "status": "sent", "note": "no reply yet - follow up"},
-    {"co": "Prism Data", "to": "careers@prismdata.com", "status": "sent", "note": "no reply yet - follow up"}
+    {
+      "co": "MARC",
+      "to": "aaron@marcprop.com",
+      "status": "replied",
+      "note": "Dean Fahy replied (Calendly); calendar invite received for Mon Nov 2 9:30am EST — call booked"
+    },
+    {
+      "co": "BOB",
+      "to": "contact@joinbob.ai",
+      "status": "replied",
+      "note": "Adam replied with Calendly + Tommy Rodberg also reached out; call rescheduled to Tuesday — call booked"
+    },
+    {
+      "co": "Finpilot",
+      "to": "lakshay.chauhan@finpilot.ai",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Finpilot",
+      "to": "brandon.pelfrey@finpilot.ai",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Fragment",
+      "to": "frank@fragmentdata.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Fragment",
+      "to": "pranav@fragmentdata.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Fragment",
+      "to": "varun@fragment.dev",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Vera Health",
+      "to": "taieb@verahealth.ai",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Broccoli AI",
+      "to": "aj@broccoli.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Slingshot",
+      "to": "hello@slingshotinsurance.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "CapitalOS",
+      "to": "jobs@capitalos.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Mural",
+      "to": "start@muralpay.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    },
+    {
+      "co": "Prism Data",
+      "to": "careers@prismdata.com",
+      "status": "sent",
+      "note": "no reply yet - follow up"
+    }
   ]
 }
