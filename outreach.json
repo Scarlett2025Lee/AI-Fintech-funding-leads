@@ -1,12 +1,12 @@
 {
-  "updated": "2026-11-19",
+  "updated": "2026-11-20",
   "sent": 13,
   "replied": 2,
   "call": 2,
   "rate": "15%",
   "rows": [
-    {"co": "MARC", "to": "aaron@marcprop.com", "status": "replied", "note": "replied; call booking link shared by dean@marcprop.com (Calendly interview)"},
-    {"co": "BOB", "to": "contact@joinbob.ai", "status": "replied", "note": "replied; call booked for Friday 9am with adam@joinbob.ai; tommy@joinbob.ai also replied"},
+    {"co": "MARC", "to": "aaron@marcprop.com", "status": "replied", "note": "replied (Dean Fahy) / call booked - calendar invite received for Nov 2 9:30am EST"},
+    {"co": "BOB", "to": "contact@joinbob.ai", "status": "replied", "note": "replied (Adam + Tommy) / call booked - confirmed Tuesday 9am"},
     {"co": "Finpilot", "to": "lakshay.chauhan@finpilot.ai", "status": "sent", "note": "no reply yet - follow up"},
     {"co": "Finpilot", "to": "brandon.pelfrey@finpilot.ai", "status": "sent", "note": "no reply yet - follow up"},
     {"co": "Fragment", "to": "frank@fragmentdata.com", "status": "sent", "note": "no reply yet - follow up"},
