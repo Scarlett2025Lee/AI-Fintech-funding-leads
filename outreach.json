@@ -1,21 +1,21 @@
 {
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "sent": 13,
   "replied": 2,
-  "call": 1,
+  "call": 2,
   "rate": "15%",
   "rows": [
     {
       "co": "MARC",
       "to": "aaron@marcprop.com",
       "status": "replied",
-      "note": "replied by dean@marcprop.com; call booked Mon Nov 2 2026 9:30-10am EST"
+      "note": "replied; call booked Mon Nov 2 2026 9:30am EST with Dean Fahy (Finance & Operations)"
     },
     {
       "co": "BOB",
       "to": "contact@joinbob.ai",
       "status": "replied",
-      "note": "replied by tommy@joinbob.ai; also reached out by adam@joinbob.ai"
+      "note": "replied; call booked - rescheduled to Tuesday with Adam Wininger"
     },
     {
       "co": "Fragment Data",
@@ -30,7 +30,7 @@
       "note": "no reply yet - follow up"
     },
     {
-      "co": "Finpilot",
+      "co": "FinPilot",
       "to": "lakshaychauhan@finpilot.ai",
       "status": "sent",
       "note": "no reply yet - follow up"
@@ -54,7 +54,7 @@
       "note": "no reply yet - follow up"
     },
     {
-      "co": "Finpilot",
+      "co": "FinPilot",
       "to": "brandonpelfrey@finpilot.ai",
       "status": "sent",
       "note": "no reply yet - follow up"
