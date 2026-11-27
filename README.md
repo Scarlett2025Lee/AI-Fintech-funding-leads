@@ -8,6 +8,7 @@ Weekly lists of recently funded AI and fintech startups — US only, pre-seed th
 
 | Week ending | Companies | Hiring-match | File |
 |-------------|-----------|--------------|------|
+| 2026-11-27 | 4 | 2 | [weeks/2026-11-27.md](weeks/2026-11-27.md) |
 | 2026-11-20 | 6 | 4 | [weeks/2026-11-20.md](weeks/2026-11-20.md) |
 | 2026-11-13 | 7 | 4 | [weeks/2026-11-13.md](weeks/2026-11-13.md) |
 | 2026-11-06 | 7 | 5 | [weeks/2026-11-06.md](weeks/2026-11-06.md) |
